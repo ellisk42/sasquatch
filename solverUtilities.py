@@ -109,10 +109,10 @@ def compressionLoop(pr,mdl,verbose = True):
     d = (time.time() - start_time)
     if verbose: print "Proved unsatisfiable in %f sec" % d
     solver_time += d
-    print "Total solver time: %f"  % solver_time
-    if not verbose:
-        print pr(m)
-        print extract_real(m,mdl)
+    if verbose: print "Total solver time: %f"  % solver_time
+    if m == None:
+        return 'FAIL',m
+    return pr(m), extract_real(m,mdl)
 
 
 
@@ -222,7 +222,14 @@ def generator(d, production):
     mdl = real()
     constrain(mdl == childrenMDL + logarithm(numberRules))
     return evaluate, mdl, printer #, concrete
-        
+
+def clear_solver():
+    global slv, rule_bank
+    slv = Solver()
+    productions = rule_bank.keys()
+    for p in productions:
+        if isinstance(rule_bank[p],list):
+            del rule_bank[p]
 
 def primitive_real():
     thing = real()
@@ -276,7 +283,7 @@ def dinner_party(tasks, callback, cores = 10):
             p = os.fork()
             if p == 0:
                 sys.stdout = os.fdopen(w, "w")
-                task()
+                print task()
                 sys.exit()
             else:
                 descriptors[p] = r
@@ -299,7 +306,7 @@ def parallelCompression(pr,mdl,concrete,cores = 10):
     def make_task(k):
         def task():
             constrain(And(*k))
-            compressionLoop(pr,mdl,verbose = False)
+            return compressionLoop(pr,mdl,verbose = False)
         return task
     def continuation(solution):
         global parallelBest, parallelLoss
