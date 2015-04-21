@@ -3,8 +3,11 @@ from z3 import *
 import math
 import random
 
-TENSES = 2
-FLAGS = 1
+from corpus import verbs
+
+TENSES = 6
+LS = 2 # latent strings
+LF = 0 # latent flags
 
 # map between tipa and z3 character code
 ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', 'D': 'PD', 'R': 'PR', 't': 'Pt', 'd': 'Pd',
@@ -104,9 +107,9 @@ def primitive_string():
     constrain(m == logarithm(44)*thing[0])
     return evaluate_string, m, print_string
 
-indexed_rule('STEM', 'stem', TENSES,
+indexed_rule('STEM', 'stem', LS,
              lambda i: i['stems'])
-indexed_rule('FLAG', 'flag', FLAGS,
+indexed_rule('FLAG', 'flag', LF,
              lambda i: i['flags'])
 rule('VOICED',['STEM'],
      lambda m,st: "(voiced? (last-one %s))" % st,
@@ -114,7 +117,7 @@ rule('VOICED',['STEM'],
 rule('PREDICATE',['VOICED'],
      lambda m,v: v,
      lambda i,v: v)
-if FLAGS > 0:
+if LF > 0:
     rule('PREDICATE',['FLAG'],
          lambda m,v: v,
          lambda i,v: v)
@@ -130,19 +133,17 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
+N = 2
+observations = random.sample(verbs,N)
+print observations
+
+maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
+
 # for each tense, a different rule
 programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
 
-observations = [ [ "b a l z", "b a l"],
-                 ["d o g z", "d o g"],
-                 ["r u n z","r u n"],
-                 ["i t s","i t"],
-                 ["a k s @ n", "a k s"],
-                 ["w a k s","w a k"]]*1
-N = len(observations)
-
-inputs = [ {'stems': [morpheme() for i in range(TENSES)],
-            'flags': [boolean() for i in range(FLAGS) ]}
+inputs = [ {'stems': [morpheme() for i in range(LS)],
+            'flags': [boolean() for i in range(LF) ]}
            for j in range(N) ]
 
 for t in range(TENSES):
@@ -158,16 +159,16 @@ def printer(m):
     model += "\n"
     for j in range(N):
         model += "\t".join(["stem[%i] = %s" % (t,extract_string(m,inputs[j]['stems'][t])) 
-                            for t in range(TENSES) ])
+                            for t in range(LS) ])
         model += "\n"
         model += "\t".join(["flag[%i] = %s" % (f,extract_bool(m,inputs[j]['flags'][f]))
-                            for f in range(FLAGS) ])
+                            for f in range(LF) ])
         model += "\n"
     return model
 
 
 flat_stems = [ v for sl in inputs for v in sl['stems'] ]
-total = summation([N*TENSES*FLAGS] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
+total = summation([N*TENSES*LF] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
 
 
 compressionLoop(printer,total)
