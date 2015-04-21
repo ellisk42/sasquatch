@@ -4,15 +4,15 @@ import sys
 
 
 S = 4 # number of samples
-N = 4 # number of functions
-sqN = int(math.sqrt(N))
+N = 5 # number of functions
+sqN = int(math.ceil(math.sqrt(N)))
 
 X = range(S)
 
 training_outputs = []
 for n in range(1,N+1):
-    n1 = int(n/sqN)
-    n2 = n % sqN
+    n1 = 3*(int(n/sqN) + 1)
+    n2 = 3*(n % sqN + 1)
     for x in X:
         training_outputs.append(eval(sys.argv[1]))
 
