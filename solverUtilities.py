@@ -73,6 +73,11 @@ def constrain_angle(dx,dy):
 
 def extract_real(m,r):
     return float(m[r].as_decimal(3).replace('?',''))
+def extract_bool(m,b):
+    b = m[b]
+    if b == None:
+        return '?'
+    return str(b)
 
 def multiplexer(indicators,choices):
     assert(len(indicators) == len(choices))

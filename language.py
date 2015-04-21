@@ -4,6 +4,7 @@ import math
 import random
 
 TENSES = 2
+FLAGS = 1
 
 # map between tipa and z3 character code
 ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', 'D': 'PD', 'R': 'PR', 't': 'Pt', 'd': 'Pd',
@@ -104,13 +105,19 @@ def primitive_string():
     return evaluate_string, m, print_string
 
 indexed_rule('STEM', 'stem', TENSES,
-             lambda i: i)
+             lambda i: i['stems'])
+indexed_rule('FLAG', 'flag', FLAGS,
+             lambda i: i['flags'])
 rule('VOICED',['STEM'],
      lambda m,st: "(voiced? (last-one %s))" % st,
      lambda i,st: voiced(last_one(st)))
 rule('PREDICATE',['VOICED'],
      lambda m,v: v,
      lambda i,v: v)
+if FLAGS > 0:
+    rule('PREDICATE',['FLAG'],
+         lambda m,v: v,
+         lambda i,v: v)
 rule('RETURN',['STEM','STRING'],
      lambda m, stem, suffix: stem if suffix == '\\textipa{}' else "(append %s %s)" % (stem,suffix),
      lambda i, p, q: concatenate(p,q))
@@ -124,20 +131,23 @@ primitive_rule('STRING',
                primitive_string)
 
 # for each tense, a different rule
-programs = [ generator(2,'CONDITIONAL') for j in range(TENSES) ]
+programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
 
 observations = [ [ "b a l z", "b a l"],
                  ["d o g z", "d o g"],
                  ["r u n z","r u n"],
                  ["i t s","i t"],
+                 ["a k s @ n", "a k s"],
                  ["w a k s","w a k"]]*1
 N = len(observations)
 
-stems = [ [morpheme() for i in range(TENSES)] for j in range(N) ]
+inputs = [ {'stems': [morpheme() for i in range(TENSES)],
+            'flags': [boolean() for i in range(FLAGS) ]}
+           for j in range(N) ]
 
 for t in range(TENSES):
     for n in range(N):
-        o = programs[t][0](stems[n])
+        o = programs[t][0](inputs[n])
         constrain_phonemes(o, observations[n][t])
 
 def printer(m):
@@ -147,12 +157,17 @@ def printer(m):
         model += "Tense %i: %s\n" % (t,programs[t][2](m))
     model += "\n"
     for j in range(N):
-        model += "\t".join(["stem[%i] = %s" % (t,extract_string(m,stems[j][t])) for  t in range(TENSES) ])
+        model += "\t".join(["stem[%i] = %s" % (t,extract_string(m,inputs[j]['stems'][t])) 
+                            for t in range(TENSES) ])
+        model += "\n"
+        model += "\t".join(["flag[%i] = %s" % (f,extract_bool(m,inputs[j]['flags'][f]))
+                            for f in range(FLAGS) ])
         model += "\n"
     return model
 
-flat_stems = [ v for sl in stems for v in sl  ]
-total = summation([p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
+
+flat_stems = [ v for sl in inputs for v in sl['stems'] ]
+total = summation([N*TENSES*FLAGS] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
 
 
 compressionLoop(printer,total)
