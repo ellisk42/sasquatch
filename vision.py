@@ -3,6 +3,9 @@ import math
 import sys
 import time
 
+translational_noise = 6
+
+
 #LD = 4 # latent distances
 #LA = 0 # latent angles
 LS = 1 # latent shapes
@@ -18,6 +21,7 @@ for picture_file in sys.argv[1:]:
     with open(picture_file,'r') as picture:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
+        print "PICTURE: ", shapes
         LS = max([LS] + [ shape[3]+1 for shape in shapes ])
         observations.append([(x,y,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
 #observations = [ [(3.0*i,4.0*i,triangle) for i in [1,2,3]], #,(3,9,5)],
@@ -96,7 +100,7 @@ def program_generator(d):
 
 # returns an expression that asserts that the shapes are equal
 def check_shape(shape, shapep):
-    e = 0.01
+    e = translational_noise
     x,y,sh = shape
     xp,yp,sp = shapep
     if e > 0:
@@ -106,7 +110,7 @@ def check_shape(shape, shapep):
     return [x == xp,y == yp,sh == sp]
 
 solutions = []    
-for LA,LD in [(a,d) for a in range(2) for d in range(2,2*len(observations[0])+1) ]:
+for LA,LD in [(a,d) for a in [2] for d in range(2,2*len(observations[0])+1) ]:
     clear_solver()
     dataMDL = len(observations)*(10.0*(LA+LD)+100.0*LS)
     define_grammar(LD, LA)
@@ -125,11 +129,19 @@ for LA,LD in [(a,d) for a in range(2) for d in range(2,2*len(observations[0])+1)
         observation = observations[i]
         picture = draw_picture(inputs[i])
         permutation = permutation_indicators(len(picture))
-        for r in range(len(picture)):
-            for c in range(len(picture)):
-                for constraint in check_shape(picture[r],observation[c]):
-                    constrain(Implies(permutation[r][c], constraint))
-    
+        if False:
+            for r in range(len(picture)):
+                for c in range(len(picture)):
+                    for constraint in check_shape(picture[r],observation[c]):
+                        constrain(Implies(permutation[r][c], constraint))
+        else:
+            permuted_picture = apply_permutation(permutation, picture)
+            for shape1, shape2 in zip(permuted_picture, observation):
+                constrain(check_shape(shape1, shape2))
+    # If we have a solution so far, ensure that we beat it
+    if len(solutions) > 0:
+        (bestLength,bestPrinter,bestAngles,bestDistances) = min(solutions)
+        constrain(mdl < bestLength)
     
     # modify printer so it also includes the latent dimensions
     def full_printer(m):

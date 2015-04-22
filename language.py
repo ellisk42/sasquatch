@@ -6,7 +6,7 @@ import random
 from corpus import verbs
 
 TENSES = 6
-LS = 2 # latent strings
+LS = 1 # latent strings
 LF = 0 # latent flags
 
 # map between tipa and z3 character code
@@ -107,6 +107,9 @@ def primitive_string():
     constrain(m == logarithm(44)*thing[0])
     return evaluate_string, m, print_string
 
+rule('STEM', [],
+     lambda m: 'lemma',
+     lambda i: i['lemma'])
 indexed_rule('STEM', 'stem', LS,
              lambda i: i['stems'])
 indexed_rule('FLAG', 'flag', LF,
@@ -140,10 +143,11 @@ print observations
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
 # for each tense, a different rule
-programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
+programs = [ generator(2,'CONDITIONAL') for j in range(TENSES) ]
 
 inputs = [ {'stems': [morpheme() for i in range(LS)],
-            'flags': [boolean() for i in range(LF) ]}
+            'flags': [boolean() for i in range(LF) ],
+            'lemma': morpheme() }
            for j in range(N) ]
 
 for t in range(TENSES):
@@ -158,6 +162,7 @@ def printer(m):
         model += "Tense %i: %s\n" % (t,programs[t][2](m))
     model += "\n"
     for j in range(N):
+        model += "lemma = %s\n" % extract_string(m,inputs[j]['lemma'])
         model += "\t".join(["stem[%i] = %s" % (t,extract_string(m,inputs[j]['stems'][t])) 
                             for t in range(LS) ])
         model += "\n"
@@ -167,7 +172,7 @@ def printer(m):
     return model
 
 
-flat_stems = [ v for sl in inputs for v in sl['stems'] ]
+flat_stems = [ v for sl in inputs for v in sl['stems'] ] + [ v['lemma'] for v in inputs ]
 total = summation([N*TENSES*LF] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
 
 

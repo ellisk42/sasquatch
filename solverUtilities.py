@@ -6,6 +6,11 @@ import time
 import os
 
 
+def multiset(ls):
+    frequencies = {}
+    for x in ls:
+        frequencies[x] = 1 + frequencies.get(x,0)
+    return 
 
 
 slv = Solver()
@@ -56,17 +61,20 @@ def integer_numbers(K):
     return [ integer() for i in range(0,K) ]
 
 def summation(xs):
-    accumulator = 0
-    for x in xs:
-        new_accumulator = real()
-        constrain(new_accumulator == accumulator + x)
-        accumulator = new_accumulator
-    return accumulator
+    if len(xs) == 0: return 0
+    if len(xs) == 1: return xs[0]
+    accumulator = xs[0]
+    for x in xs[1:]:
+        accumulator = accumulator + x
+#        new_accumulator = real()
+#        constrain(new_accumulator == accumulator + x)
+#        accumulator = new_accumulator
+    s = real()
+    constrain(s == accumulator)
+    return s
 
 def logarithm(n):
     return math.log(n)/math.log(2.0)
-def iff(a,b):
-    constrain(And(Implies(a,b),Implies(b,a)))
 
 def constrain_angle(dx,dy):
     constrain(dx*dx + dy*dy == 1)
@@ -80,11 +88,17 @@ def extract_bool(m,b):
     return str(b)
 
 def multiplexer(indicators,choices):
+    if isinstance(choices[0], tuple):
+        n = len(choices[0]) # arity of tuple
+        return tuple([ multiplexer(indicators, [x[j] for x in choices ]) for j in range(n) ])
     assert(len(indicators) == len(choices))
     if len(indicators) == 1:
         return choices[0]
     return If(indicators[0], choices[0],
               multiplexer(indicators[1:],choices[1:]))
+
+def apply_permutation(p, xs):
+    return [ multiplexer(p[j],xs) for j in range(len(xs)) ]
 
 # wrapper over If that handles tuples correctly
 def conditional(p,q,r):
@@ -155,11 +169,6 @@ def analyze_rule_recursion():
             if not counterexample:
                 changed = True
                 primitive_production[production] = True
-'''
-    for r in rule_bank.keys():
-        if primitive_production[r]:
-            print "%s is primitive" % r
-'''
 
 
 def generator(d, production):
@@ -177,33 +186,52 @@ def generator(d, production):
     
     numberRules = len(rules)
     
-    indicators = pick_one(numberRules)
+    child_frequencies = {}
+    for (children,printer,evaluator) in rules:
+        multiset = {}
+        for child in children:
+            multiset[child] = 1 + multiset.get(child,0)
+        for child,multiplicity in multiset.iteritems():
+            child_frequencies[child] = max(multiplicity,
+                                           child_frequencies.get(child,0))
     
-    recursive = [ [ generator(d-1, child) for child in children ]
-                  for (children,printer,evaluator) in rules ]
-    recursiveRun = [ [ r[0] for r in rs ] for rs in recursive]
-    recursiveMDL = [ [ r[1] for r in rs ] for rs in recursive ]
-    recursivePrint = [ [ r[2] for r in rs ] for rs in recursive ]
-    #recursiveConcrete = [ [ r[3] for r in rs ] for rs in recursive ]
+    indicators = pick_one(numberRules)
+   
+    recursive = {}
+    for child,multiplicity in child_frequencies.iteritems():
+        for j in range(multiplicity):
+            recursive[(child,j)] = generator(d-1, child)
+ 
+    # returns the recursive invocations for the ith rule
+    def getRecursive(i, slot):
+        assert slot == 0 or slot == 1 or slot == 2
+        children = rules[i][0]
+        recs = []
+        for childIndex,child in enumerate(children):
+            predecessors = len([c for c in children[:childIndex] if c == child])
+            recs.append(recursive[(child,predecessors)][slot])
+        return recs
     
     childrenMDL = real()
-    for i in range(numberRules):
-        constrain(Implies(indicators[i],
-                          childrenMDL == summation(recursiveMDL[i])))
+    constrain(childrenMDL == multiplexer(indicators, 
+                                         [ summation(getRecursive(i,1)) for i in range(numberRules)]))
+#    for i in range(numberRules):
+#        constrain(Implies(indicators[i],
+#                          childrenMDL == summation(getRecursive(i,1))))
     def printer(m):
         for i in range(numberRules):
             flag = indicators[i]
             if yes(m[flag]):
                 # using the ith rule
                 chosen_printer = rules[i][1]
-                printed_children = [ r(m) for r in recursivePrint[i] ]
+                printed_children = [ r(m) for r in getRecursive(i,2) ]
                 return apply(chosen_printer,[m] + printed_children)
         return "#"+production
     
     def evaluate(i):
         outputs = []
         for r in range(numberRules):
-            children_outputs = [ c(i) for c in recursiveRun[r] ]
+            children_outputs = [ c(i) for c in getRecursive(r,0) ]
             runner = rules[r][2]
             outputs.append(apply(runner, [i]+children_outputs))
         # multiplex the outputs; generically, they might be tuples
