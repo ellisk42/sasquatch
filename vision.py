@@ -23,9 +23,13 @@ for picture_file in sys.argv[1:]:
         shapes = eval('['+picture[0]+']')
         print "PICTURE: ", shapes
         LS = max([LS] + [ shape[3]+1 for shape in shapes ])
-        observations.append([(x,y,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
-#observations = [ [(3.0*i,4.0*i,triangle) for i in [1,2,3]], #,(3,9,5)],
-#                 [(1.0*i,1.0*i,rectangle) for i in [1,2,3]]] #,(7,10,2)] ]
+        observations.append([(x+1000,y+10000,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
+
+if True:
+    triangle = 42.0
+    rectangle = 99.0
+    observations = [ [(3.0*i,4.0*i,triangle) for i in [1,2,3]], #,(3,9,5)],
+                     [(1.0*i,1.0*i,rectangle) for i in [1,2,3]]] #,(7,10,2)] ]
 
 
     
@@ -110,7 +114,7 @@ def check_shape(shape, shapep):
     return [x == xp,y == yp,sh == sp]
 
 solutions = []    
-for LA,LD in [(a,d) for a in [2] for d in range(2,2*len(observations[0])+1) ]:
+for LA,LD in [(a,d) for a in [1] for d in [3]]: #range(2,2*len(observations[0])+1) ]:
     clear_solver()
     dataMDL = len(observations)*(10.0*(LA+LD)+100.0*LS)
     define_grammar(LD, LA)
