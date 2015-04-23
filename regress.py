@@ -31,9 +31,12 @@ for D in range(1,3):
          lambda i: i[0])
     indexed_rule('EXPRESSION','T',D,
                  lambda i: i[1:])
-    rule('EXPRESSION',['BOOL','EXPRESSION','EXPRESSION'],
-         lambda m, o, p, q: "(%s %s %s)" % ('+' if o == 'True' else '*',p,q),
-         lambda i, o, p, q: If(o,p+q,p*q))
+    rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
+         lambda m, p, q: "(+ %s %s)" % (p,q),
+         lambda i, p, q: p+q)
+    rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
+         lambda m, p, q: "(* %s %s)" % (p,q),
+         lambda i, p, q: p*q)
 
     training_inputs = []
     for n in range(N):

@@ -6,11 +6,6 @@ import time
 import os
 
 
-def multiset(ls):
-    frequencies = {}
-    for x in ls:
-        frequencies[x] = 1 + frequencies.get(x,0)
-    return 
 
 
 slv = Solver()
@@ -61,20 +56,17 @@ def integer_numbers(K):
     return [ integer() for i in range(0,K) ]
 
 def summation(xs):
-    if len(xs) == 0: return 0
-    if len(xs) == 1: return xs[0]
-    accumulator = xs[0]
-    for x in xs[1:]:
-        accumulator = accumulator + x
-#        new_accumulator = real()
-#        constrain(new_accumulator == accumulator + x)
-#        accumulator = new_accumulator
-    s = real()
-    constrain(s == accumulator)
-    return s
+    accumulator = 0
+    for x in xs:
+        new_accumulator = real()
+        constrain(new_accumulator == accumulator + x)
+        accumulator = new_accumulator
+    return accumulator
 
 def logarithm(n):
     return math.log(n)/math.log(2.0)
+def iff(a,b):
+    constrain(And(Implies(a,b),Implies(b,a)))
 
 def constrain_angle(dx,dy):
     constrain(dx*dx + dy*dy == 1)
@@ -169,23 +161,29 @@ def analyze_rule_recursion():
             if not counterexample:
                 changed = True
                 primitive_production[production] = True
-
+'''
+    for r in rule_bank.keys():
+        if primitive_production[r]:
+            print "%s is primitive" % r
+'''
 
 def generator(d, production):
     if dirty_bank:
         analyze_rule_recursion()
-    
+
     rules = rule_bank[production]
     if not isinstance(rules,list):
         return rules()
-    
+
     if d <= 1 and not primitive_production[production]: # can't go any deeper
         rules = filter(lambda (children,p,e):
                            all([ primitive_production[child] for child in children]),
                        rules)
-    
+
     numberRules = len(rules)
-    
+
+    indicators = pick_one(numberRules)
+
     child_frequencies = {}
     for (children,printer,evaluator) in rules:
         multiset = {}
@@ -194,30 +192,25 @@ def generator(d, production):
         for child,multiplicity in multiset.iteritems():
             child_frequencies[child] = max(multiplicity,
                                            child_frequencies.get(child,0))
-    
-    indicators = pick_one(numberRules)
-   
+
     recursive = {}
     for child,multiplicity in child_frequencies.iteritems():
         for j in range(multiplicity):
-            recursive[(child,j)] = generator(d-1, child)
- 
+            recursive["%s/%i" % (child,j+1)] = generator(d-1, child)
+            
     # returns the recursive invocations for the ith rule
     def getRecursive(i, slot):
         assert slot == 0 or slot == 1 or slot == 2
         children = rules[i][0]
-        recs = []
-        for childIndex,child in enumerate(children):
-            predecessors = len([c for c in children[:childIndex] if c == child])
-            recs.append(recursive[(child,predecessors)][slot])
-        return recs
-    
+        child_labels = [ "%s/%i" % (child,len(filter(lambda k: k == child,children[:j]))+1)
+                         for j, child in enumerate(children) ]
+        return [ recursive[k][slot] for k in child_labels ]
+
+
     childrenMDL = real()
-    constrain(childrenMDL == multiplexer(indicators, 
+    constrain(childrenMDL == multiplexer(indicators,
                                          [ summation(getRecursive(i,1)) for i in range(numberRules)]))
-#    for i in range(numberRules):
-#        constrain(Implies(indicators[i],
-#                          childrenMDL == summation(getRecursive(i,1))))
+
     def printer(m):
         for i in range(numberRules):
             flag = indicators[i]
@@ -227,7 +220,8 @@ def generator(d, production):
                 printed_children = [ r(m) for r in getRecursive(i,2) ]
                 return apply(chosen_printer,[m] + printed_children)
         return "#"+production
-    
+
+
     def evaluate(i):
         outputs = []
         for r in range(numberRules):
@@ -242,16 +236,7 @@ def generator(d, production):
         for j in range(output_size):
             multiplexed.append(multiplexer(indicators, [ o[j] for o in outputs ]))
         return multiplexed
-    
-    '''
-    for j in range(numberRules):
-        concrete.append((1,[indicators[j]]))
-        concreteArguments = filter(lambda cs: len(cs) > 0,
-                                   recursiveConcrete[j])
-        
-        for c in recursiveConcrete[j]:
-            concrete.append([indicators[j]]+c))
-    '''
+
     mdl = real()
     constrain(mdl == childrenMDL + logarithm(numberRules))
     return evaluate, mdl, printer #, concrete

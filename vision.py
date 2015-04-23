@@ -3,7 +3,7 @@ import math
 import sys
 import time
 
-translational_noise = 6
+translational_noise = 9
 
 
 #LD = 4 # latent distances
@@ -25,7 +25,7 @@ for picture_file in sys.argv[1:]:
         LS = max([LS] + [ shape[3]+1 for shape in shapes ])
         observations.append([(x+1000,y+10000,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
 
-if True:
+if False:
     triangle = 42.0
     rectangle = 99.0
     observations = [ [(3.0*i,4.0*i,triangle) for i in [1,2,3]], #,(3,9,5)],
@@ -114,7 +114,7 @@ def check_shape(shape, shapep):
     return [x == xp,y == yp,sh == sp]
 
 solutions = []    
-for LA,LD in [(a,d) for a in [1] for d in [3]]: #range(2,2*len(observations[0])+1) ]:
+for LA,LD in [(a,d) for a in [1] for d in [4]]: #range(2,2*len(observations[0])+1) ]:
     clear_solver()
     dataMDL = len(observations)*(10.0*(LA+LD)+100.0*LS)
     define_grammar(LD, LA)

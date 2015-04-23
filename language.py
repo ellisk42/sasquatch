@@ -6,7 +6,7 @@ import random
 from corpus import verbs
 
 TENSES = 6
-LS = 1 # latent strings
+LS = 0 # latent strings
 LF = 0 # latent flags
 
 # map between tipa and z3 character code
@@ -136,7 +136,7 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
-N = 2
+N = 4
 observations = random.sample(verbs,N)
 print observations
 
