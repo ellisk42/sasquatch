@@ -136,7 +136,7 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
-N = 4
+N = 3
 observations = random.sample(verbs,N)
 print observations
 
