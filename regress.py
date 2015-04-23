@@ -49,6 +49,10 @@ for D in range(1,3):
         yp = e(o)
         constrain(yp > y - epsilon)
         constrain(yp < y + epsilon)
+    if len(solutions) > 0:
+        (bestLength,bestPrinter,bestD) = min(solutions)
+        constrain(m < bestLength)
+
     p,m = compressionLoop(p,m)
     if m == None:
         print "No solution for D = %i" % D
