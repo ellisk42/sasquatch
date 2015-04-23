@@ -228,14 +228,8 @@ def generator(d, production):
             children_outputs = [ c(i) for c in getRecursive(r,0) ]
             runner = rules[r][2]
             outputs.append(apply(runner, [i]+children_outputs))
-        # multiplex the outputs; generically, they might be tuples
-        if not isinstance(outputs[0],tuple):
-            return multiplexer(indicators, outputs)
-        output_size = len(outputs[0])
-        multiplexed = []
-        for j in range(output_size):
-            multiplexed.append(multiplexer(indicators, [ o[j] for o in outputs ]))
-        return multiplexed
+        # multiplex the outputs
+        return multiplexer(indicators, outputs)
 
     mdl = real()
     constrain(mdl == childrenMDL + logarithm(numberRules))
