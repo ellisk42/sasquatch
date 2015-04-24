@@ -207,7 +207,7 @@ observations = [["p e","p e d","p e I N","p e d","p e","p e z"],
                 ["E n d","E n d @ d","E n d I N","E n d @ d","E n d","E n d z"],
                 ["b \\ae n","b \\ae n d","b \\ae n I N","b \\ae n d","b \\ae n","b \\ae n z"],
                 ["p a p","p a p t","p a p I N","p a p t","p a p","p a p s"]]
-print observations
+latexTable(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
