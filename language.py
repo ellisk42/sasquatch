@@ -23,14 +23,14 @@ z3char = {}
 for p in phonemes:
     z3char[str(p)] = p
 
-Place, places = EnumSort('Place', ('LABIAL','CORONAL','DORSAL'))
+Place, places = EnumSort('Place', ('NoPlace','LABIAL','CORONAL','DORSAL'))
 place_table = { 'LABIAL': 'p b f v m w',
                 'CORONAL': 'r t d T D s z S Z n l',
                 'DORSAL': 'k g h j N' }
 Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
 voice_table = { 'VOICED': 'b m v D R d n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
                 'UNVOICED': 'p f T t r s S w P h'}
-Manner, manners = EnumSort('Manner', ('STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
+Manner, manners = EnumSort('Manner', ('NoManner','STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
 manner_table = { 'STOP': 'p b t d k g',
                  'FRICATIVE': 'f v T D s z Z S h',
                  'NASAL': 'm n N',
@@ -110,8 +110,12 @@ def extract_feature(p, sort, realizations, table):
     table = [ (realizations[renderings.index(name)],
                [ z3char[ipa2char[m]] for m in matches.split(' ') ])
               for name, matches in table.iteritems() ]
-    expression = table[0][0]
-    for answer, possibilities in table[1:]:
+    if renderings[0] == 'No'+str(sort): # this will be the default case
+        expression = realizations[0]
+    else:
+        expression = table[0][0] # pick a default arbitrarily
+        table = table[1:]
+    for answer, possibilities in table:
         expression = If(Or(*[ p == possibility for possibility in possibilities ]),
                         answer,
                         expression)
