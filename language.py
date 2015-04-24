@@ -97,10 +97,10 @@ def last_one(ps):
     return ending
 
 
-def voice(p):
-    v = Const(new_symbol(), Voicing)
-    renderings = [str(v) for v in voices ]
-    table = [ (voices[renderings.index(name)],
+def extract_feature(p, sort, realizations):
+    v = Const(new_symbol(), sort)
+    renderings = [str(v) for v in realizations ]
+    table = [ (realizations[renderings.index(name)],
                [ z3char[ipa2char[m]] for m in matches.split(' ') ])
               for name, matches in voice_table.iteritems() ]
     expression = table[0][0]
@@ -111,9 +111,10 @@ def voice(p):
     constrain(v == expression)
     return v
 
+def voice(p):
+    return extract_feature(p, Voicing, voices)
+
 def voiced(p):
-#    targets = 'bmvDRdnzZjlgNiIeE@2Aa50oUu'
-#    targets = ['\\ae'] + [t for t in targets ]
     v = boolean()
     constrain(v == (voice(p) == voices[0]))
     return v
