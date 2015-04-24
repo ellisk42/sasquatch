@@ -23,12 +23,19 @@ z3char = {}
 for p in phonemes:
     z3char[str(p)] = p
 
-Place, places = EnumSort('Place', ('LABIAL','CORONAL','DORSAL'))
+Place, places = EnumSort('Place', ('NoPlace','LABIAL','CORONAL','DORSAL'))
+place_table = { 'LABIAL': 'p b f v m w',
+                'CORONAL': 'r t d T D s z S Z n l',
+                'DORSAL': 'k g h j N' }
 Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
 voice_table = { 'VOICED': 'b m v D R d n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
                 'UNVOICED': 'p f T t r s S w P h'}
-Manner, manners = EnumSort('Manner', ('STOP','AFFRICATE','FRICATIVE','NASAL','LIQUID','GLIDE'))
-
+Manner, manners = EnumSort('Manner', ('NoManner','STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
+manner_table = { 'STOP': 'p b t d k g',
+                 'FRICATIVE': 'f v T D s z Z S h',
+                 'NASAL': 'm n N',
+                 'LIQUID': 'l r',
+                 'GLIDE': 'j w'}
 
 # maximum string length
 maximum_length = 9
@@ -97,28 +104,34 @@ def last_one(ps):
     return ending
 
 
-def voice(p):
-    return_value = Const(new_symbol(), Voicing)
-    renderings = [str(v) for v in voices ]
-    table = [ (voices[renderings.index(name)],
+def extract_feature(p, sort, realizations, table):
+    v = Const(new_symbol(), sort)
+    renderings = [str(v) for v in realizations ]
+    table = [ (realizations[renderings.index(name)],
                [ z3char[ipa2char[m]] for m in matches.split(' ') ])
-              for name, matches in voice_table.iteritems() ]
-    expression = table[0][0]
-    for answer, possibilities in table[1:]:
+              for name, matches in table.iteritems() ]
+    if renderings[0] == 'No'+str(sort): # this will be the default case
+        expression = realizations[0]
+    else:
+        expression = table[0][0] # pick a default arbitrarily
+        table = table[1:]
+    for answer, possibilities in table:
         expression = If(Or(*[ p == possibility for possibility in possibilities ]),
                         answer,
                         expression)
     constrain(return_value == expression)
     return return_value
 
+def voice(p):
+    return extract_feature(p, Voicing, voices, voice_table)
+def manner(p):
+    return extract_feature(p, Manner, manners, manner_table)
+def place(p):
+    return extract_feature(p, Place, places, place_table)
+
+
 def voiced(p):
     return voice(p) == voices[0]
-
-def place(p):
-    
-    v = Const(new_symbol(), Place)
-    constrain(v == Or(*[ p == z3char[ipa2char[t]] for t in targets ]))
-    return v
 
 def primitive_string():
     thing = morpheme()
