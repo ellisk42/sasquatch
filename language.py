@@ -28,9 +28,9 @@ Place, places = EnumSort('Place', ('NoPlace','LABIAL','CORONAL','DORSAL'))
 place_table = { 'LABIAL': 'p b f v m w',
                 'CORONAL': 'r t d T D s z S Z n l',
                 'DORSAL': 'k g h j N' }
-Voicing, voices = EnumSort('Voice', ('NoVoice','VOICED','UNVOICED'))
+Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
 voice_table = { 'VOICED': 'b m v D R d n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
-                'UNVOICED': 'p f T t r s S w P h'}
+                'UNVOICED': 'p f T t r s S w P h k'}
 Manner, manners = EnumSort('Manner', ('NoManner','STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
 manner_table = { 'STOP': 'p b t d k g',
                  'FRICATIVE': 'f v T D s z Z S h',
@@ -146,18 +146,32 @@ def primitive_string():
 
 enum_rule('VOICE', list(voices))
 enum_rule('PLACE', list(places)[1:])
-enum_rule('MANNER', list(manner)[1:])
+enum_rule('MANNER', list(manners)[1:])
 
 rule('VOICE-GUARD', [],
      lambda m: '?',
      lambda i: True)
 rule('VOICE-GUARD', ['VOICE'],
-     lambda m g: g,
-     lambda i f: f == voice(i['last']))
+     lambda m, g: g,
+     lambda i, f: f == voice(i['last']))
 
-rule('GUARD', ['VOICE-GUARD'],
-     lambda m v: "[ %s ]" % v,
-     lambda i f: And(f))
+rule('MANNER-GUARD', [],
+     lambda m: '?',
+     lambda i: True)
+rule('MANNER-GUARD', ['MANNER'],
+     lambda m, g: g,
+     lambda i, f: f == manner(i['last']))
+
+rule('PLACE-GUARD', [],
+     lambda m: '?',
+     lambda i: True)
+rule('PLACE-GUARD', ['PLACE'],
+     lambda m, g: g,
+     lambda i, f: f == place(i['last']))
+
+rule('GUARD', ['VOICE-GUARD','MANNER-GUARD','PLACE-GUARD'],
+     lambda m, v, ma, g: ("[ %s %s %s ]" % (v,g,ma)).replace(' ?',''),
+     lambda i, f, ma, g: And(f,ma,g))
 
 
 rule('STEM', [],
@@ -184,15 +198,21 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
-N = 2
+N = 6
 observations = random.sample(verbs,N)
-observations = [['k @ m p o z', 'k @ m p o z d', 'k @ m p o z I N', 'k @ m p o z d', 'k @ m p o z', 'k @ m p o z @ z'], ['k @ n s t r @ k t', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t I N', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t', 'k @ n s t r @ k t s']]
+#observations = [['k @ m p o z', 'k @ m p o z d', 'k @ m p o z I N', 'k @ m p o z d', 'k @ m p o z', 'k @ m p o z @ z'], ['k @ n s t r @ k t', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t I N', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t', 'k @ n s t r @ k t s']]
+observations = [["p e","p e d","p e I N","p e d","p e","p e z"],
+                ["w e t","w e t @ d","w e t I N","w e t @ d","w e t","w e t s"],
+                ["k I k","k I k t","k I k I N","k I k t","k I k","k I k s"],
+                ["E n d","E n d @ d","E n d I N","E n d @ d","E n d","E n d z"],
+                ["b \\ae n","b \\ae n d","b \\ae n I N","b \\ae n d","b \\ae n","b \\ae n z"],
+                ["p a p","p a p t","p a p I N","p a p t","p a p","p a p s"]]
 print observations
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
 # for each tense, a different rule
-programs = [ generator(2,'CONDITIONAL') for j in range(TENSES) ]
+programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
 
 inputs = [ {'stems': [morpheme() for i in range(LS)],
             'flags': [boolean() for i in range(LF) ],
