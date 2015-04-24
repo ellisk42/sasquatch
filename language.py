@@ -98,7 +98,7 @@ def last_one(ps):
 
 
 def voice(p):
-    v = Const(new_symbol(), Voicing)
+    return_value = Const(new_symbol(), Voicing)
     renderings = [str(v) for v in voices ]
     table = [ (voices[renderings.index(name)],
                [ z3char[ipa2char[m]] for m in matches.split(' ') ])
@@ -108,15 +108,11 @@ def voice(p):
         expression = If(Or(*[ p == possibility for possibility in possibilities ]),
                         answer,
                         expression)
-    constrain(v == expression)
-    return v
+    constrain(return_value == expression)
+    return return_value
 
 def voiced(p):
-#    targets = 'bmvDRdnzZjlgNiIeE@2Aa50oUu'
-#    targets = ['\\ae'] + [t for t in targets ]
-    v = boolean()
-    constrain(v == (voice(p) == voices[0]))
-    return v
+    return voice(p) == voices[0]
 
 def place(p):
     
