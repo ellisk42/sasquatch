@@ -105,7 +105,7 @@ def last_one(ps):
 
 
 def extract_feature(p, sort, realizations, table):
-    v = Const(new_symbol(), sort)
+    return_value = Const(new_symbol(), sort)
     renderings = [str(v) for v in realizations ]
     table = [ (realizations[renderings.index(name)],
                [ z3char[ipa2char[m]] for m in matches.split(' ') ])
@@ -142,6 +142,7 @@ def primitive_string():
     m = real()
     constrain(m == logarithm(44)*thing[0])
     return evaluate_string, m, print_string
+
 
 rule('STEM', [],
      lambda m: 'lemma',
