@@ -24,11 +24,18 @@ for p in phonemes:
     z3char[str(p)] = p
 
 Place, places = EnumSort('Place', ('LABIAL','CORONAL','DORSAL'))
+place_table = { 'LABIAL': 'p b f v m w',
+                'CORONAL': 'r t d T D s z S Z n l',
+                'DORSAL': 'k g h j N' }
 Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
 voice_table = { 'VOICED': 'b m v D R d n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
                 'UNVOICED': 'p f T t r s S w P h'}
-Manner, manners = EnumSort('Manner', ('STOP','AFFRICATE','FRICATIVE','NASAL','LIQUID','GLIDE'))
-
+Manner, manners = EnumSort('Manner', ('STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
+manner_table = { 'STOP': 'p b t d k g',
+                 'FRICATIVE': 'f v T D s z Z S h',
+                 'NASAL': 'm n N',
+                 'LIQUID': 'l r',
+                 'GLIDE': 'j w'}
 
 # maximum string length
 maximum_length = 9
@@ -97,12 +104,12 @@ def last_one(ps):
     return ending
 
 
-def extract_feature(p, sort, realizations):
+def extract_feature(p, sort, realizations, table):
     v = Const(new_symbol(), sort)
     renderings = [str(v) for v in realizations ]
     table = [ (realizations[renderings.index(name)],
                [ z3char[ipa2char[m]] for m in matches.split(' ') ])
-              for name, matches in voice_table.iteritems() ]
+              for name, matches in table.iteritems() ]
     expression = table[0][0]
     for answer, possibilities in table[1:]:
         expression = If(Or(*[ p == possibility for possibility in possibilities ]),
@@ -112,7 +119,12 @@ def extract_feature(p, sort, realizations):
     return v
 
 def voice(p):
-    return extract_feature(p, Voicing, voices)
+    return extract_feature(p, Voicing, voices, voice_table)
+def manner(p):
+    return extract_feature(p, Manner, manners, manner_table)
+def place(p):
+    return extract_feature(p, Place, places, place_table)
+
 
 def voiced(p):
     v = boolean()
