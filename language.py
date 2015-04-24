@@ -23,6 +23,11 @@ z3char = {}
 for p in phonemes:
     z3char[str(p)] = p
 
+Place, places = EnumSort('Place', ('LABIAL','CORONAL','DORSAL'))
+Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
+Manner, manners = EnumSort('Manner', ('STOP','AFFRICATE','FRICATIVE','NASAL','LIQUID','GLIDE'))
+
+
 # maximum string length
 maximum_length = 9
 
@@ -94,6 +99,12 @@ def voiced(p):
     targets = 'bmvDRdnzZjlgNiIeE@2Aa50oUu'
     targets = ['\\ae'] + [t for t in targets ]
     v = boolean()
+    constrain(v == Or(*[ p == z3char[ipa2char[t]] for t in targets ]))
+    return v
+
+def place(p):
+    
+    v = Const(new_symbol(), Place)
     constrain(v == Or(*[ p == z3char[ipa2char[t]] for t in targets ]))
     return v
 
