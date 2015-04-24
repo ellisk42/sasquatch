@@ -131,12 +131,6 @@ def voiced(p):
     constrain(v == (voice(p) == voices[0]))
     return v
 
-def place(p):
-    
-    v = Const(new_symbol(), Place)
-    constrain(v == Or(*[ p == z3char[ipa2char[t]] for t in targets ]))
-    return v
-
 def primitive_string():
     thing = morpheme()
     def evaluate_string(i):
