@@ -163,8 +163,9 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
-N = 3
+N = 2
 observations = random.sample(verbs,N)
+observations = [['k @ m p o z', 'k @ m p o z d', 'k @ m p o z I N', 'k @ m p o z d', 'k @ m p o z', 'k @ m p o z @ z'], ['k @ n s t r @ k t', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t I N', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t', 'k @ n s t r @ k t s']]
 print observations
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
