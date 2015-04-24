@@ -276,6 +276,14 @@ def indexed_rule(production, array_name, l, array_values):
     for j in range(l):
         make_index(j)
 
+def enum_rule(production, options):
+    def make_index(k):
+        rule(production,[],
+             lambda m: str(options[k]),
+             lambda i: options[k])
+    for j in range(len(options)):
+        make_index(j)
+
 
 
 # hacking parallelism

@@ -1,3 +1,4 @@
+
 from solverUtilities import *
 from z3 import *
 import math
@@ -27,7 +28,7 @@ Place, places = EnumSort('Place', ('NoPlace','LABIAL','CORONAL','DORSAL'))
 place_table = { 'LABIAL': 'p b f v m w',
                 'CORONAL': 'r t d T D s z S Z n l',
                 'DORSAL': 'k g h j N' }
-Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
+Voicing, voices = EnumSort('Voice', ('NoVoice','VOICED','UNVOICED'))
 voice_table = { 'VOICED': 'b m v D R d n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
                 'UNVOICED': 'p f T t r s S w P h'}
 Manner, manners = EnumSort('Manner', ('NoManner','STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
@@ -143,6 +144,21 @@ def primitive_string():
     constrain(m == logarithm(44)*thing[0])
     return evaluate_string, m, print_string
 
+enum_rule('VOICE', list(voices))
+enum_rule('PLACE', list(places)[1:])
+enum_rule('MANNER', list(manner)[1:])
+
+rule('VOICE-GUARD', [],
+     lambda m: '?',
+     lambda i: True)
+rule('VOICE-GUARD', ['VOICE'],
+     lambda m g: g,
+     lambda i f: f == voice(i['last']))
+
+rule('GUARD', ['VOICE-GUARD'],
+     lambda m v: "[ %s ]" % v,
+     lambda i f: And(f))
+
 
 rule('STEM', [],
      lambda m: 'lemma',
@@ -151,20 +167,15 @@ indexed_rule('STEM', 'stem', LS,
              lambda i: i['stems'])
 indexed_rule('FLAG', 'flag', LF,
              lambda i: i['flags'])
-rule('VOICED',['STEM'],
-     lambda m,st: "(voiced? (last-one %s))" % st,
-     lambda i,st: voiced(last_one(st)))
-rule('PREDICATE',['VOICED'],
-     lambda m,v: v,
-     lambda i,v: v)
+
 if LF > 0:
-    rule('PREDICATE',['FLAG'],
+    rule('GUARD',['FLAG'],
          lambda m,v: v,
          lambda i,v: v)
 rule('RETURN',['STEM','STRING'],
      lambda m, stem, suffix: stem if suffix == '\\textipa{}' else "(append %s %s)" % (stem,suffix),
      lambda i, p, q: concatenate(p,q))
-rule('CONDITIONAL',['PREDICATE','RETURN','CONDITIONAL'],
+rule('CONDITIONAL',['GUARD','RETURN','CONDITIONAL'],
      lambda m, p,q,r: "(if %s %s %s)" % (p,q,r),
      lambda i, p,q,r: conditional(p,q,r))
 rule('CONDITIONAL',['RETURN'],
@@ -187,6 +198,9 @@ inputs = [ {'stems': [morpheme() for i in range(LS)],
             'flags': [boolean() for i in range(LF) ],
             'lemma': morpheme() }
            for j in range(N) ]
+for j in range(N):
+    inputs[j]['last'] = last_one(inputs[j]['lemma'])
+
 
 for t in range(TENSES):
     for n in range(N):
