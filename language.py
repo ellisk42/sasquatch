@@ -25,6 +25,8 @@ for p in phonemes:
 
 Place, places = EnumSort('Place', ('LABIAL','CORONAL','DORSAL'))
 Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
+voice_table = { 'VOICED': 'b m v D R d n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
+                'UNVOICED': 'p f T t r s S w P h'}
 Manner, manners = EnumSort('Manner', ('STOP','AFFRICATE','FRICATIVE','NASAL','LIQUID','GLIDE'))
 
 
@@ -95,11 +97,25 @@ def last_one(ps):
     return ending
 
 
+def voice(p):
+    v = Const(new_symbol(), Voicing)
+    renderings = [str(v) for v in voices ]
+    table = [ (voices[renderings.index(name)],
+               [ z3char[ipa2char[m]] for m in matches.split(' ') ])
+              for name, matches in voice_table.iteritems() ]
+    expression = table[0][0]
+    for answer, possibilities in table[1:]:
+        expression = If(Or(*[ p == possibility for possibility in possibilities ]),
+                        answer,
+                        expression)
+    constrain(v == expression)
+    return v
+
 def voiced(p):
-    targets = 'bmvDRdnzZjlgNiIeE@2Aa50oUu'
-    targets = ['\\ae'] + [t for t in targets ]
+#    targets = 'bmvDRdnzZjlgNiIeE@2Aa50oUu'
+#    targets = ['\\ae'] + [t for t in targets ]
     v = boolean()
-    constrain(v == Or(*[ p == z3char[ipa2char[t]] for t in targets ]))
+    constrain(v == (voice(p) == voices[0]))
     return v
 
 def place(p):
