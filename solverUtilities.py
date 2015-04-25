@@ -10,6 +10,13 @@ import os
 
 slv = Solver()
 
+def push_solver():
+    slv.push()
+def pop_solver():
+    slv.pop()
+def set_solver(s):
+    global slv
+    slv = s
 
 next_Jensen = 1
 def new_symbol():
@@ -123,6 +130,15 @@ def compressionLoop(pr,mdl,verbose = True):
     if verbose: print "Total solver time: %f"  % solver_time
     if m == None:
         return 'FAIL',m
+    # compute structural assertions
+    structure_constraints = []
+    for v in structural_variables:
+        if m[v] != None:
+            structure_constraints.append(v == m[v])
+    # pop the frame that contains the training data
+    slv.pop()
+    # constrain the solution to be the best one that we found
+    slv.add(And(*structure_constraints))
     return pr(m), extract_real(m,mdl)
 
 
@@ -161,11 +177,17 @@ def analyze_rule_recursion():
             if not counterexample:
                 changed = True
                 primitive_production[production] = True
-'''
-    for r in rule_bank.keys():
-        if primitive_production[r]:
-            print "%s is primitive" % r
-'''
+
+# structural variables are those that control the structure of the synthesized program
+structural_variables = set([])
+def structural(v):
+    if isinstance(v,list):
+        return [ structural(vp) for vp in v ]
+    elif isinstance(v,tuple):
+        return tuple([ structural(vp) for vp in v ])
+    else:
+        structural_variables.add(v)
+        return v
 
 def generator(d, production):
     if dirty_bank:
@@ -182,7 +204,7 @@ def generator(d, production):
 
     numberRules = len(rules)
 
-    indicators = pick_one(numberRules)
+    indicators = structural(pick_one(numberRules))
 
     child_frequencies = {}
     for (children,printer,evaluator) in rules:
@@ -236,7 +258,8 @@ def generator(d, production):
     return evaluate, mdl, printer #, concrete
 
 def clear_solver():
-    global slv, rule_bank
+    global slv, rule_bank, structural_variables
+    structural_variables = set([])
     slv = Solver()
     productions = rule_bank.keys()
     for p in productions:
@@ -244,14 +267,14 @@ def clear_solver():
             del rule_bank[p]
 
 def primitive_real():
-    thing = real()
+    thing = structural(real())
     def evaluate_real(i): return thing
     def print_real(m): return extract_real(m,thing)
     return evaluate_real, 10.0, print_real
 primitive_rule('REAL', primitive_real)
 
 def primitive_Boolean():
-    thing = boolean()
+    thing = structural(boolean())
     def e(i): return thing
     def p(m): return str(m[thing])
     return e,1.0,p #, [(1,[thing]),(1,[Not(thing)])]
@@ -259,7 +282,7 @@ primitive_rule('BOOL', primitive_Boolean)
 
 
 def primitive_angle():
-    x,y = real(), real()
+    x,y = structural((real(), real()))
     constrain_angle(x,y)
     def e(i): return x,y
     def p(m): 

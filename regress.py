@@ -17,7 +17,7 @@ for n in range(1,N+1):
         training_outputs.append(eval(sys.argv[1]))
 
 solutions = []
-for D in range(1,3):
+for D in range(1,2):
     dataMDL = N*D*10.0
     clear_solver()
     # inputs is a list of [x t1 t2 ...]
@@ -44,6 +44,9 @@ for D in range(1,3):
             training_inputs.append([x] + L[n])
     e,m,p = generator(3,'EXPRESSION')
     m = summation([m,dataMDL])
+    
+    push_solver() # new frame for the training data
+    
     for o,y in zip(training_inputs, training_outputs):
         epsilon = 0.1
         yp = e(o)
@@ -58,12 +61,23 @@ for D in range(1,3):
         print "No solution for D = %i" % D
     else:
         print "Got solution for D = %i" % D
-        solutions.append((m,p,D))
+        solutions.append((m,p,e,slv,D))
         
 
-(m,p,D) = min(solutions)
+(m,p,e,solver,D) = min(solutions)
 print "="*40
 print "Best solution: %f bits (D = %i)" % (m,D)
 print "="*40
-
 print p
+
+# Try it on a held out test function
+set_solver(solver)
+t = [ real() for i in  range(D)]
+for x in X:
+    y = eval(sys.argv[2])
+    yp = e([x] + t)
+    epsilon = 0.1
+    constrain(yp > y - epsilon)
+    constrain(yp < y + epsilon)
+
+slv.check()

@@ -136,7 +136,7 @@ def sibilant(p):
 
 
 def primitive_string():
-    thing = morpheme()
+    thing = structural(morpheme())
     def evaluate_string(i):
         return thing
     def print_string(m):
