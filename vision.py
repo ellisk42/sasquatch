@@ -186,7 +186,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,len(ob
 
 (m,p,LA,LD,LP) = min(solutions)
 print "="*40
-print "Best solution: %f bits (D,A,P = %i,%i)" % (m,LD,LA,LP)
+print "Best solution: %f bits (D,A,P = %i,%i,%i)" % (m,LD,LA,LP)
 print "="*40
 
 print p
