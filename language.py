@@ -4,7 +4,7 @@ from z3 import *
 import math
 import random
 
-from corpus import verbs
+from corpus import verbs, latexTable
 
 TENSES = 6
 LS = 0 # latent strings

@@ -3,7 +3,7 @@ import math
 import sys
 import time
 
-translational_noise = 9
+translational_noise = 5
 
 
 #LD = 4 # latent distances
@@ -23,7 +23,7 @@ for picture_file in sys.argv[1:]:
         shapes = eval('['+picture[0]+']')
         print "PICTURE: ", shapes
         LS = max([LS] + [ shape[3]+1 for shape in shapes ])
-        observations.append([(x+1000,y+10000,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
+        observations.append([(x,y,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
 
 if False:
     triangle = 42.0
@@ -46,9 +46,9 @@ def move_turtle(x,y,tx,ty,d,ax,ay):
 
 def define_grammar(LP,LD,LA):
     if LD > 0:
-        rule('ORIENTATION', ['ANGLE'],
-             lambda m, a: a,
-             lambda i, a: a)
+#        rule('ORIENTATION', ['ANGLE'],
+#             lambda m, a: a,
+#             lambda i, a: a)
         rule('ORIENTATION', [],
              lambda m: "0deg",
              lambda i: (1.0,0.0))
@@ -64,12 +64,12 @@ def define_grammar(LP,LD,LA):
                  lambda (t,i): i['positions'])
     rule('LOCATE', ['POSITION'],
          lambda m, p: "(teleport %s)" % p,
-         lambda (t,i), (p, q): (p,q,0.0,1.0))
+         lambda (t,i), (p, q): (p,q,1.0,0.0))
     
     
     rule('INITIALIZE',[],
          lambda m: "(teleport r[0])",
-         lambda (t,i): (i['positions'][0][0],i['positions'][0][1],0.0,1.0))
+         lambda (t,i): (i['positions'][0][0],i['positions'][0][1],1.0,0.0))
     rule('INITIAL-SHAPE',[],
          lambda m: "s[0]",
          lambda (t,i): i['shapes'][0])
@@ -148,7 +148,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,len(ob
                 constrain(check_shape(shape1, shape2))
     # If we have a solution so far, ensure that we beat it
     if len(solutions) > 0:
-        (bestLength,bestPrinter,bestAngles,bestDistances) = min(solutions)
+        (bestLength,bestPrinter,bestAngles,bestDistances,bestPositions) = min(solutions)
         constrain(mdl < bestLength)
     
     # modify printer so it also includes the latent dimensions
@@ -169,7 +169,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,len(ob
             if LA > 0:
                 for (dx,dy),index in zip(inputs[n][1]['angles'], range(LA)):
                     a = int(math.atan2(extract_real(m,dy),extract_real(m,dx))/math.pi*180.0)
-                    program = program + ("a%i[%i] = %i; " % (n, index, a))
+                    program = program + ("a[%i] = %i; " % (index, a))
                 program += "\n\t"
             for sh in range(LS):
                 program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh])))
