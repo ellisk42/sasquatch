@@ -1009,8 +1009,9 @@ def sample_corpus(n,l,irregulars):
     flat_sample = []
     while len(sample) < n:
         attempt = random.choice(verbs)
-        if any([ len(w.split(' ')) > l for w in sample ]): continue
-        if any([ w in irregulars for w in sample ]): continue
+        if any([ len(w.split(' ')) > l for w in attempt ]): continue
+        if not irregulars:
+            if [ w for w in attempt if w in irregular ]: continue
         if "|".join(attempt) in flat_sample: continue
         sample.append(attempt)
         flat_sample.append("|".join(attempt))
@@ -1032,3 +1033,12 @@ Meaning & Present & Past & Progressive & Perfect & Future & 3rd Person \\
 \\end{table}
 '''
 
+
+
+minimal_pairs = [["p e","p e d","p e I N","p e d","p e","p e z"],
+                 ["w e t","w e t @ d","w e t I N","w e t @ d","w e t","w e t s"],
+                 ["k I k","k I k t","k I k I N","k I k t","k I k","k I k s"],
+                 ["E n d","E n d @ d","E n d I N","E n d @ d","E n d","E n d z"],
+                 ["b \\ae n","b \\ae n d","b \\ae n I N","b \\ae n d","b \\ae n","b \\ae n z"],
+                 ["p a p","p a p t","p a p I N","p a p t","p a p","p a p s"],
+                 ["p U S","p U S t","p U S I N","p U S t","p U S","p U S @ z"]]
