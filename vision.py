@@ -3,8 +3,7 @@ import math
 import sys
 import time
 
-translational_noise = 5
-
+translational_noise = 7
 
 #LD = 4 # latent distances
 #LA = 0 # latent angles
