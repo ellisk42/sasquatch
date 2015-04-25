@@ -1004,8 +1004,8 @@ irregular = ['f i d','T I N k','f @ r g E t','a w t S a j n','b @ f 5 l','s l i 
 
 def latexTable(words):
     print '''
-\begin{table}[h]
-\begin{tabular}{lllllll}
+\\begin{table}[h]
+\\begin{tabular}{lllllll}
 Meaning & Present & Past & Progressive & Perfect & Future & 3rd Person \\
 '''
     for word in words:
@@ -1013,6 +1013,6 @@ Meaning & Present & Past & Progressive & Perfect & Future & 3rd Person \\
             print "&\\textipa{%s}" % i,
         print "\\\\"
     print '''
-\end{tabular}
-\end{table}
+\\end{tabular}
+\\end{table}
 '''
