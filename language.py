@@ -37,6 +37,8 @@ manner_table = { 'STOP': 'p b t d k g',
                  'NASAL': 'm n N',
                  'LIQUID': 'l r',
                  'GLIDE': 'j w'}
+Sibilant, sibilance = EnumSort('Sibilant', ('NoSibilant','SIBILANT'))
+sibilant_table = { 'SIBILANT': 's z S Z'}
 
 # maximum string length
 maximum_length = 9
@@ -129,10 +131,9 @@ def manner(p):
     return extract_feature(p, Manner, manners, manner_table)
 def place(p):
     return extract_feature(p, Place, places, place_table)
+def sibilant(p):
+    return extract_feature(p, Sibilant, sibilance, sibilant_table)
 
-
-def voiced(p):
-    return voice(p) == voices[0]
 
 def primitive_string():
     thing = morpheme()
@@ -147,6 +148,7 @@ def primitive_string():
 enum_rule('VOICE', list(voices))
 enum_rule('PLACE', list(places)[1:])
 enum_rule('MANNER', list(manners)[1:])
+enum_rule('SIBILANT', list(sibilance)[1:])
 
 rule('VOICE-GUARD', [],
      lambda m: '?',
@@ -169,9 +171,16 @@ rule('PLACE-GUARD', ['PLACE'],
      lambda m, g: g,
      lambda i, f: f == place(i['last']))
 
-rule('GUARD', ['VOICE-GUARD','MANNER-GUARD','PLACE-GUARD'],
-     lambda m, v, ma, g: ("[ %s %s %s ]" % (v,g,ma)).replace(' ?',''),
-     lambda i, f, ma, g: And(f,ma,g))
+rule('SIBILANT-GUARD', [],
+     lambda m: '?',
+     lambda i: True)
+rule('SIBILANT-GUARD', ['SIBILANT'],
+     lambda m, g: g,
+     lambda i, f: f == sibilant(i['last']))
+
+rule('GUARD', ['VOICE-GUARD','MANNER-GUARD','PLACE-GUARD','SIBILANT-GUARD'],
+     lambda m, v, ma, g, s: ("[ %s %s %s %s ]" % (v,g,ma,s)).replace(' ?',''),
+     lambda i, f, ma, g, s: And(f,ma,g,s))
 
 
 rule('STEM', [],
