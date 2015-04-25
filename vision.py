@@ -120,6 +120,8 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,len(ob
     clear_solver()
     dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS)
     define_grammar(LP, LD, LA)
+    # Push a frame to hold all of the test data
+    push_solver()
     inputs = []
     for n in range(len(observations)):
         ps = [ (real(), real()) for j in range(LP) ]

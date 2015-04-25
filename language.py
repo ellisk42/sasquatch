@@ -4,7 +4,7 @@ from z3 import *
 import math
 import random
 
-from corpus import verbs, latexTable, sample_corpus
+from corpus import verbs, latexTable, sample_corpus, minimal_pairs
 
 TENSES = 6
 LS = 0 # latent strings
@@ -208,7 +208,7 @@ primitive_rule('STRING',
                primitive_string)
 
 print sample_corpus(10,20,True)
-os.exit()
+
 observations = minimal_pairs
 N = len(observations)
 #latexTable(observations)
@@ -217,6 +217,9 @@ maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
 # for each tense, a different rule
 programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
+
+# Push a frame to hold all of the test data
+push_solver()
 
 inputs = [ {'stems': [morpheme() for i in range(LS)],
             'flags': [boolean() for i in range(LF) ],
@@ -239,12 +242,14 @@ def printer(m):
     model += "\n"
     for j in range(N):
         model += "lemma = %s\n" % extract_string(m,inputs[j]['lemma'])
-        model += "\t".join(["stem[%i] = %s" % (t,extract_string(m,inputs[j]['stems'][t])) 
-                            for t in range(LS) ])
-        model += "\n"
-        model += "\t".join(["flag[%i] = %s" % (f,extract_bool(m,inputs[j]['flags'][f]))
-                            for f in range(LF) ])
-        model += "\n"
+        if LS > 0:
+            model += "\t".join(["stem[%i] = %s" % (t,extract_string(m,inputs[j]['stems'][t])) 
+                                for t in range(LS) ])
+        if LF > 0:
+            model += "\n"
+            model += "\t".join(["flag[%i] = %s" % (f,extract_bool(m,inputs[j]['flags'][f]))
+                                for f in range(LF) ])
+            model += "\n"
     return model
 
 

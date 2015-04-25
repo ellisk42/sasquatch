@@ -17,7 +17,7 @@ for n in range(1,N+1):
         training_outputs.append(eval(sys.argv[1]))
 
 solutions = []
-for D in range(1,2):
+for D in range(1,3):
     dataMDL = N*D*10.0
     clear_solver()
     # inputs is a list of [x t1 t2 ...]
@@ -42,7 +42,7 @@ for D in range(1,2):
     for n in range(N):
         for x in X:
             training_inputs.append([x] + L[n])
-    e,m,p = generator(3,'EXPRESSION')
+    e,m,pr = generator(2,'EXPRESSION')
     m = summation([m,dataMDL])
     
     push_solver() # new frame for the training data
@@ -53,18 +53,18 @@ for D in range(1,2):
         constrain(yp > y - epsilon)
         constrain(yp < y + epsilon)
     if len(solutions) > 0:
-        (bestLength,bestPrinter,bestD) = min(solutions)
+        bestLength = min(solutions)[0]
         constrain(m < bestLength)
 
-    p,m = compressionLoop(p,m)
+    p,m = compressionLoop(pr,m)
     if m == None:
         print "No solution for D = %i" % D
     else:
         print "Got solution for D = %i" % D
-        solutions.append((m,p,e,slv,D))
+        solutions.append((m,p,e,pr,get_solver(),D))
         
 
-(m,p,e,solver,D) = min(solutions)
+(m,p,e,pr,solver,D) = min(solutions)
 print "="*40
 print "Best solution: %f bits (D = %i)" % (m,D)
 print "="*40
@@ -77,7 +77,12 @@ for x in X:
     y = eval(sys.argv[2])
     yp = e([x] + t)
     epsilon = 0.1
+#    constrain(yp == y)
     constrain(yp > y - epsilon)
     constrain(yp < y + epsilon)
 
-slv.check()
+if str(solver.check()) == 'sat':
+    print 'Found representation for test data:'
+    print [extract_real(solver.model(), th) for th in t ]
+else:
+    print 'Test data not representable.'

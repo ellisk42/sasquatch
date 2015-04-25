@@ -17,6 +17,9 @@ def pop_solver():
 def set_solver(s):
     global slv
     slv = s
+def get_solver():
+    global slv
+    return slv
 
 next_Jensen = 1
 def new_symbol():
@@ -136,7 +139,8 @@ def compressionLoop(pr,mdl,verbose = True):
         if m[v] != None:
             structure_constraints.append(v == m[v])
     # pop the frame that contains the training data
-    slv.pop()
+    pop_solver()
+    
     # constrain the solution to be the best one that we found
     slv.add(And(*structure_constraints))
     return pr(m), extract_real(m,mdl)
@@ -179,14 +183,14 @@ def analyze_rule_recursion():
                 primitive_production[production] = True
 
 # structural variables are those that control the structure of the synthesized program
-structural_variables = set([])
+structural_variables = []
 def structural(v):
     if isinstance(v,list):
         return [ structural(vp) for vp in v ]
     elif isinstance(v,tuple):
         return tuple([ structural(vp) for vp in v ])
     else:
-        structural_variables.add(v)
+        structural_variables.append(v)
         return v
 
 def generator(d, production):
@@ -236,6 +240,7 @@ def generator(d, production):
     def printer(m):
         for i in range(numberRules):
             flag = indicators[i]
+#            print "Trying", str(flag)
             if yes(m[flag]):
                 # using the ith rule
                 chosen_printer = rules[i][1]
@@ -259,7 +264,7 @@ def generator(d, production):
 
 def clear_solver():
     global slv, rule_bank, structural_variables
-    structural_variables = set([])
+    structural_variables = []
     slv = Solver()
     productions = rule_bank.keys()
     for p in productions:
