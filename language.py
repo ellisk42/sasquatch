@@ -4,7 +4,7 @@ from z3 import *
 import math
 import random
 
-from corpus import verbs, latexTable
+from corpus import verbs, latexTable, sample_corpus
 
 TENSES = 6
 LS = 0 # latent strings
@@ -207,16 +207,11 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
-N = 6
-observations = random.sample(verbs,N)
-#observations = [['k @ m p o z', 'k @ m p o z d', 'k @ m p o z I N', 'k @ m p o z d', 'k @ m p o z', 'k @ m p o z @ z'], ['k @ n s t r @ k t', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t I N', 'k @ n s t r @ k t @ d', 'k @ n s t r @ k t', 'k @ n s t r @ k t s']]
-observations = [["p e","p e d","p e I N","p e d","p e","p e z"],
-                ["w e t","w e t @ d","w e t I N","w e t @ d","w e t","w e t s"],
-                ["k I k","k I k t","k I k I N","k I k t","k I k","k I k s"],
-                ["E n d","E n d @ d","E n d I N","E n d @ d","E n d","E n d z"],
-                ["b \\ae n","b \\ae n d","b \\ae n I N","b \\ae n d","b \\ae n","b \\ae n z"],
-                ["p a p","p a p t","p a p I N","p a p t","p a p","p a p s"]]
-latexTable(observations)
+print sample_corpus(10,20,True)
+os.exit()
+observations = minimal_pairs
+N = len(observations)
+#latexTable(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 

@@ -1,3 +1,5 @@
+import random
+
 verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["h \\ae v","h \\ae d","h \\ae v I N","h a v e d","h \\ae v","h \\ae v z"],
          ["d u","d i d s t","d u I N","d @ n","d 5 T","d @ z"],
@@ -100,6 +102,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["r @ t @ r n","r @ t @ r n d","r @ t @ r n I N","r @ t @ r n d","r @ t @ r n","r @ t @ r n z"],
          ["d r a j v","d r o v","d r a j v I N","d r I v @ n","d r a j v","d r a j v z"],
          ["d r 5","d r u","d r 5 I N","d r 5 n","d r 5","d r 5 z"],
+
          ["I n v a l v","I n v a l v d","I n v a l v I N","I n v a l v d","I n v a l v","I n v a l v z"],
          ["k I l","k I l d","k I l I N","k I l d","k I l","k I l z"],
          ["k @ n s I d @ r","k @ n s I d @ r d","k @ n s I d @ r I N","k @ n s I d @ r d","k @ n s I d @ r","k @ n s I d @ r z"],
@@ -1001,6 +1004,19 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
 
 irregular = ['f i d','T I N k','f @ r g E t','a w t S a j n','b @ f 5 l','s l i p','S u','S e k','g o','m I s h i r','s p i d','f a j n d','b l o','s m i t e','m I s r i d','I n t @ r w i v','r I N','s E n d','f i l','t S u z','o v @ r r a j d','o v @ r k @ m','a w t s E l','s w I m','d u','s t r I N','g E t','r E d','b I d','r a j z','b E r','r i m e k','b r e k','f 5 r t E l','n o','f a l','r i b I l d','f l i','s t r a j v','b @ s i t S','o v @ r f l a j','b r I N','t E r','d I g','l i v','s l a j d','f 5 r s e k','l u z','b I k @ m','a w t d u','s t i l','m i n','@ n w a j n d','o v @ r d u','d i l','@ n d @ r r a j t','@ w e k','s p r I N','d r 5','f r i z','s i','o v e r l i e','@ n d @ r t e k','p l i d','h i v','k r i p','k l o D','r e f r e e z e','h a j d','l E d','m I s s p E n d','l i p','b I g E t','s l i n k','n i l','u n s t i c k','b i','r @ n','f @ r g I v','@ n d u','w E r','s I N','t i t S','k @ m','T r o','S a j n','k l i v','o v @ r t e k','@ p h o l d','o v @ r s i','r i T I N k','k i p','s t r a j d','s w E r','s t \\ae n d','s w I N','@ n d @ r g o','u n d e r s h o o t','s I N k','r i v e','b r i d','f 5 r s i','o v e r s l e e p','w I T s t \\ae n d','f @ r b I d','w I n','o v @ r S u t','s w i p','r e b r e a k','r I N','f a j t','r i d u','s p i k','o v @ r h I r','t r E d','b a j t','r i r a j t','b l i d','s t r a j k','t E l','o v @ r h \\ae N','b a j','s p I t','s w E l','u n m a k e','@ n d @ r l a j','@ n d @ r s t \\ae n d','s t I k','k \\ae t S','h o l d','s p I n','i t','o v @ r r @ n','o v e r b e a r','S u t','r a j d','r i t E l','S I r','b a j n d','m i t','w e k','m I s @ n d @ r s t \\ae n d','m I s t e k','f o r b e a r','s t I N k','r e n d','s l e','b @ s p i k','s t I N','f l a j','s e','b E n d','h \\ae v','@ r a j z','w I T h o l d','s i k','s E l','l a j','s I t','m e k','f l I N','r a j t','T r a j v','f 5 r g o','t e k','k l I N','b @ h o l d','S r I N k','b I g I n','s l I N','l E n d','d a j v','d r I N k','h \\ae N','s n i k','b I l d','w i p','g r o','w i v','u n b i n d','g I v','l a j t','d r a j v','g r a j n d','m I s l i d','f 5 r s w E r','w @ D d r 5','h I r','a w t g r o','d r i m','s p E n d','w a j n d']
 
+def sample_corpus(n,l,irregulars):
+    sample = []
+    flat_sample = []
+    while len(sample) < n:
+        attempt = random.choice(verbs)
+        if any([ len(w.split(' ')) > l for w in attempt ]): continue
+        if not irregulars:
+            if [ w for w in attempt if w in irregular ]: continue
+        if "|".join(attempt) in flat_sample: continue
+        sample.append(attempt)
+        flat_sample.append("|".join(attempt))
+    return sample
+
 
 def latexTable(words):
     print '''
@@ -1016,3 +1032,13 @@ Meaning & Present & Past & Progressive & Perfect & Future & 3rd Person \\
 \\end{tabular}
 \\end{table}
 '''
+
+
+
+minimal_pairs = [["p e","p e d","p e I N","p e d","p e","p e z"],
+                 ["w e t","w e t @ d","w e t I N","w e t @ d","w e t","w e t s"],
+                 ["k I k","k I k t","k I k I N","k I k t","k I k","k I k s"],
+                 ["E n d","E n d @ d","E n d I N","E n d @ d","E n d","E n d z"],
+                 ["b \\ae n","b \\ae n d","b \\ae n I N","b \\ae n d","b \\ae n","b \\ae n z"],
+                 ["p a p","p a p t","p a p I N","p a p t","p a p","p a p s"],
+                 ["p U S","p U S t","p U S I N","p U S t","p U S","p U S @ z"]]
