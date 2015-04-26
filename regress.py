@@ -20,9 +20,8 @@ solutions = []
 for D in range(1,3):
     dataMDL = N*D*10.0
     clear_solver()
-    # inputs is a list of [x t1 t2 ...]
-    L = [ [ real() for i in range(0,D) ] for j in range(0,N) ]
-    
+
+  
     rule('EXPRESSION', ['REAL'],
          lambda m, r: r,
          lambda i, r: r)
@@ -37,15 +36,18 @@ for D in range(1,3):
     rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
          lambda m, p, q: "(* %s %s)" % (p,q),
          lambda i, p, q: p*q)
+    e,m,pr = generator(2,'EXPRESSION')
+    m = summation([m,dataMDL])
 
+    push_solver() # new frame for the training data
+    
+    # inputs is a list of [x t1 t2 ...]
+    L = [ [ real() for i in range(0,D) ] for j in range(0,N) ]
     training_inputs = []
     for n in range(N):
         for x in X:
             training_inputs.append([x] + L[n])
-    e,m,pr = generator(2,'EXPRESSION')
-    m = summation([m,dataMDL])
     
-    push_solver() # new frame for the training data
     
     for o,y in zip(training_inputs, training_outputs):
         epsilon = 0.1

@@ -13,22 +13,26 @@ LS = 1 # latent shapes
 Weird thing: the solver chokes if I don't represent shape constants as real numbers.
 '''
 
+
 observations = []
+test_observations = []
+reading_test_data = False
 for picture_file in sys.argv[1:]:
+    if picture_file == 'test':
+        reading_test_data = True
+        continue
     if picture_file[0] != 'p':
         picture_file = "pictures/" + picture_file
     with open(picture_file,'r') as picture:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
         print "PICTURE: ", shapes
-        LS = max([LS] + [ shape[3]+1 for shape in shapes ])
-        observations.append([(x,y,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
-
-if False:
-    triangle = 42.0
-    rectangle = 99.0
-    observations = [ [(3.0*i,4.0*i,triangle) for i in [1,2,3]], #,(3,9,5)],
-                     [(1.0*i,1.0*i,rectangle) for i in [1,2,3]]] #,(7,10,2)] ]
+        if not reading_test_data:
+            LS = max([LS] + [ shape[3]+1 for shape in shapes ])
+            observations.append([(x,y,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
+        else:
+            test_observations.append([(x,y,s)
+                                      for [x,y,sz,s] in shapes ])
 
 
     
@@ -112,44 +116,48 @@ def check_shape(shape, shapep):
                 sh == sp]
     return [x == xp,y == yp,sh == sp]
 
+# adds a constraint saying that the picture has to equal some permutation of the observation
+def check_picture(picture,observation):
+    permutation = permutation_indicators(len(picture))
+    permuted_picture = apply_permutation(permutation, picture)
+    for shape1, shape2 in zip(permuted_picture, observation):
+        constrain(check_shape(shape1, shape2))
+
+def make_new_input(LA,LD,LP):
+    ps = [ (real(), real()) for j in range(LP) ]
+    ds = real_numbers(LD)
+    ts = [ (real(), real()) for j in range(LA) ]
+    for tx,ty in ts:
+        constrain_angle(tx,ty)
+    ss = real_numbers(LS)
+    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": ss, "positions": ps})
+        
+
 solutions = []    
 for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,len(observations[0])+1) ]:
     # make sure that the latent dimensions make sense
     if LA > 0 and LD == 0: continue
     if LP + LD > len(observations[0]): continue
+    
     clear_solver()
-    dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS)
     define_grammar(LP, LD, LA)
-    # Push a frame to hold all of the test data
-    push_solver()
-    inputs = []
-    for n in range(len(observations)):
-        ps = [ (real(), real()) for j in range(LP) ]
-        ds = real_numbers(LD)
-        ts = [ (real(), real()) for j in range(LA) ]
-        for tx,ty in ts:
-            constrain_angle(tx,ty)
-        ss = real_numbers(LS)
-        inputs.append(((0,0,1,0),{"distances": ds, "angles": ts, "shapes": ss, "positions": ps}))
-        
+       
     draw_picture,mdl,pr = program_generator(len(observations[0]))
+    dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS)
     mdl = summation([mdl,dataMDL])
+    
+    # Push a frame to hold all of the training data
+    push_solver()
+    inputs = [ make_new_input(LA,LD,LP) for n in range(len(observations)) ]
+
     for i in range(len(observations)):
         observation = observations[i]
         picture = draw_picture(inputs[i])
-        permutation = permutation_indicators(len(picture))
-        if False:
-            for r in range(len(picture)):
-                for c in range(len(picture)):
-                    for constraint in check_shape(picture[r],observation[c]):
-                        constrain(Implies(permutation[r][c], constraint))
-        else:
-            permuted_picture = apply_permutation(permutation, picture)
-            for shape1, shape2 in zip(permuted_picture, observation):
-                constrain(check_shape(shape1, shape2))
+        check_picture(picture,observation)
+    
     # If we have a solution so far, ensure that we beat it
     if len(solutions) > 0:
-        (bestLength,bestPrinter,bestAngles,bestDistances,bestPositions) = min(solutions)
+        bestLength = min(solutions)[0]
         constrain(mdl < bestLength)
     
     # modify printer so it also includes the latent dimensions
@@ -181,13 +189,31 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,len(ob
         print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
     else:
         print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-        solutions.append((m,p,LA,LD,LP))
+        solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture))
 
 
 
-(m,p,LA,LD,LP) = min(solutions)
+(m,p,LA,LD,LP,solver,gen) = min(solutions)
 print "="*40
 print "Best solution: %f bits (D,A,P = %i,%i,%i)" % (m,LD,LA,LP)
 print "="*40
 
 print p
+
+set_solver(solver)
+if test_observations:
+    print "Test data log likelihoods:"
+    for test in test_observations:
+        if len(test) != len(observations[0]) or max([ shape[2]+1 for shape in test ]) > LS:
+            print "-infinity"
+            continue
+        push_solver()
+        inputs = make_new_input(LA,LD,LP)
+        outputs = gen(inputs)
+        check_picture(outputs,test)
+        if 'sat' == str(solver.check()):
+            print "-%f" % (10.0*(LA+LD+2*LP)+100.0*LS)
+        else:
+            print "-infinity"
+        pop_solver()
+        

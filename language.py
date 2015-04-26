@@ -259,3 +259,23 @@ total = summation([N*TENSES*LF] + [p[1] for p in programs ] + [logarithm(44)*s[0
 
 compressionLoop(printer,total)
 
+
+solver = get_solver()
+
+test_data = sample_corpus(4,4,True)
+print test_data
+for test in test_data:
+    print test
+    push_solver()
+    test_input = {'stems': [morpheme() for i in range(LS)],
+                  'flags': [boolean() for i in range(LF) ],
+                  'lemma': morpheme() }
+    test_input['last'] = last_one(test_input['lemma'])
+    for j in range(TENSES):
+        o = programs[j][0](test_input)
+        constrain_phonemes(o, test[j])
+    if str(solver.check()) == 'sat':
+        print 'Passed test lemma %s' % extract_string(solver.model(),test_input['lemma'])
+    else:
+        print 'FAILURE: %s' % str(test)
+    pop_solver()
