@@ -65,16 +65,19 @@ def extract_string(m, v):
             rv += cp
     return "\\textipa{%s}" % rv
 
+# returns a list of constraints required for equality to hold
 def constrain_phonemes(ps,correct):
+    cs = []
     l = ps[0]
     ps = list(ps)[1:]
     correct = correct.split(' ')
-    constrain(l == len(correct))
+    cs.append(l == len(correct))
     
     correct = [ z3char[ipa2char[c]] for c in correct ]
     assert(len(correct) < maximum_length+1)
     for j in range(len(correct)):
-        constrain(ps[j] == correct[j])
+        cs.append(ps[j] == correct[j])
+    return cs
 
 def concatenate(p,q):
     r = morpheme()
@@ -229,10 +232,14 @@ for j in range(N):
     inputs[j]['last'] = last_one(inputs[j]['lemma'])
 
 
+noise_penalties = []
 for t in range(TENSES):
     for n in range(N):
         o = programs[t][0](inputs[n])
-        constrain_phonemes(o, observations[n][t])
+        cs = constrain_phonemes(o, observations[n][t])
+        noise_penalties.append(If(And(*cs),
+                                  0.0,
+                                  logarithm(44)*len(observations[n][t].split(' '))))
 
 def printer(m):
     
@@ -254,7 +261,7 @@ def printer(m):
 
 
 flat_stems = [ v for sl in inputs for v in sl['stems'] ] + [ v['lemma'] for v in inputs ]
-total = summation([N*TENSES*LF] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
+total = summation(noise_penalties + [N*TENSES*LF] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
 
 
 compressionLoop(printer,total)
@@ -273,7 +280,7 @@ for test in test_data:
     test_input['last'] = last_one(test_input['lemma'])
     for j in range(TENSES):
         o = programs[j][0](test_input)
-        constrain_phonemes(o, test[j])
+        constrain(constrain_phonemes(o, test[j]))
     if str(solver.check()) == 'sat':
         print 'Passed test lemma %s' % extract_string(solver.model(),test_input['lemma'])
     else:
