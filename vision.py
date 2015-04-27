@@ -5,8 +5,6 @@ import time
 
 translational_noise = 7
 
-#LD = 4 # latent distances
-#LA = 0 # latent angles
 LS = 1 # latent shapes
 
 '''
@@ -134,9 +132,10 @@ def make_new_input(LA,LD,LP):
         
 
 solutions = []    
-for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,len(observations[0])+1) ]:
+for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,len(observations[0])+1) ]:
     # make sure that the latent dimensions make sense
-    if LA > 0 and LD == 0: continue
+    if LA > LD: continue
+    if LA == 0 and LD > 0: continue # rotation invariance
     if LP + LD > len(observations[0]): continue
     
     clear_solver()

@@ -210,11 +210,11 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
-print sample_corpus(10,20,True)
+#print sample_corpus(10,20,True)
 
-observations = minimal_pairs
+observations = sample_corpus(10,7,True) #minimal_pairs
 N = len(observations)
-#latexTable(observations)
+latexTable(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
