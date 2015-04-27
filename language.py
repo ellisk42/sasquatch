@@ -88,15 +88,21 @@ def concatenate(p,q):
     lq = q[0]
     q = list(q)[1:]
     
+    # generically, p & q might be constrained to be smaller than the maximum length
+    maxP = len(p)
+    maxQ = len(q)
+    
     constrain(lr == lp+lq)
     constrain(lr < maximum_length+1)
     
     for j in range(maximum_length):
-        constrain(Implies(lp > j,
-                          r[j] == p[j]))
+        if j < maxP:
+            constrain(Implies(lp > j,
+                              r[j] == p[j]))
+        maxI = min([maximum_length-j, maxQ])
         constrain(Implies(lp == j,
                           And(*[ Implies(lq > i, r[i+j] == q[i])
-                                 for i in range(maximum_length-j) ])))
+                                 for i in range(maxI) ])))
     return tuple([lr]+r)
                           
                           
@@ -212,9 +218,8 @@ primitive_rule('STRING',
 
 #print sample_corpus(10,20,True)
 
-observations = sample_corpus(10,7,True) #minimal_pairs
+observations = minimal_pairs #sample_corpus(10,7,True) 
 N = len(observations)
-latexTable(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
@@ -269,10 +274,10 @@ compressionLoop(printer,total)
 
 solver = get_solver()
 
-test_data = sample_corpus(4,4,True)
-print test_data
+test_data = verbs #sample_corpus(4,4,True)
+#print test_data
 for test in test_data:
-    print test
+    maximum_length = max([len(w.split(' ')) for w in test])
     push_solver()
     test_input = {'stems': [morpheme() for i in range(LS)],
                   'flags': [boolean() for i in range(LF) ],
