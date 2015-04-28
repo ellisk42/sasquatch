@@ -25,6 +25,22 @@ def tipa(web):
         result.append(w)
     return ' '.join(result)
 
+# celex uses the British version of the word practice;
+# but this doesn't work with our IPA converter
+if False:
+    practice = ["p r a c t i s e","p r a c t i s e d","p r a c t i s i n g","p r a c t i s e d","p r a c t i s e","p r a c t i s e s"]
+    practice = [ p.replace(' ','').replace('practis','practic') for p in practice ]
+    phonetics = ipa.ipa(practice)
+    print '[' + ','.join([ '"' + tipa(phonetics[inflection]).encode('unicode-escape') + '"'
+                           for inflection in practice ]) + '],'
+    os.exit()
+if True:
+    practice = ["a n a l y s e","a n a l y s e d","a n a l y s i n g","a n a l y s e d","a n a l y s e"]
+    practice = [ p.replace(' ','').replace('analys','analyz') for p in practice ]
+    phonetics = ipa.ipa(practice)
+    print '[' + ','.join([ '"' + tipa(phonetics[inflection]).encode('unicode-escape') + '"'
+                           for inflection in practice ]) + '],'
+    os.exit()
 
 scores = []
 conjugations = {}

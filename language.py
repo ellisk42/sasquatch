@@ -29,8 +29,8 @@ place_table = { 'LABIAL': 'p b f v m w',
                 'CORONAL': 'r t d T D s z S Z n l',
                 'DORSAL': 'k g h j N' }
 Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
-voice_table = { 'VOICED': 'b m v D R r d n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
-                'UNVOICED': 'p f T t s S w P h k'}
+voice_table = { 'VOICED': 'b m v D R r d w n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
+                'UNVOICED': 'p f T t s S P h k'}
 Manner, manners = EnumSort('Manner', ('NoManner','STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
 manner_table = { 'STOP': 'p b t d k g',
                  'FRICATIVE': 'f v T D s z Z S h',
@@ -41,6 +41,7 @@ Sibilant, sibilance = EnumSort('Sibilant', ('NoSibilant','SIBILANT'))
 sibilant_table = { 'SIBILANT': 's z S Z'}
 
 # maximum string length
+# this will get overwritten, so the number nine is completely arbitrary
 maximum_length = 9
 
 
@@ -73,6 +74,11 @@ def constrain_phonemes(ps,correct):
     correct = correct.split(' ')
     cs.append(l == len(correct))
     
+    for c in correct:
+        if not (c in ipa2char):
+            print c
+            print 'DEATH'
+            print '%s' % correct
     correct = [ z3char[ipa2char[c]] for c in correct ]
     assert(len(correct) < maximum_length+1)
     for j in range(len(correct)):
