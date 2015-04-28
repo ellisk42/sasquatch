@@ -11,11 +11,15 @@ positives = [ "pictures/%i_1_%i" % (P,x) for x in range(100) ]
 negatives = [ "pictures/%i_0_%i" % (P,x) for x in range(100) ]
 test = ' '.join(positives + negatives)
 
+
+
+
 def run_output(training):
     o = subprocess.check_output("python vision.py %s test %s" % (training, test), shell = True)
     likelihoods = []
     reading_likelihoods = False
-    for l in o:
+    for l in o.split('\n'):
+        if len(l) == 0: continue
         if reading_likelihoods:
             likelihoods.append(float(l))
         if "Test data log likelihoods" in l:
@@ -43,5 +47,9 @@ for s in range(S):
         elif nn[j] == pn[j]:
             correct += 0.5
     print p,n, correct
-    accuracies.append(correct)
+    accuracies.append(correct/200.0)
 print accuracies
+average = sum(accuracies)/float(S)
+variance = sum([(accuracy - average)**2 for accuracy in accuracies ])/float(S)
+print average
+print variance
