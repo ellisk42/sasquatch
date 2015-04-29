@@ -224,7 +224,7 @@ primitive_rule('STRING',
 
 #print sample_corpus(10,20,True)
 
-observations = minimal_pairs #sample_corpus(5,None,True)
+observations = sample_corpus(10,None,True) #minimal_pairs
 latexTable(observations)
 N = len(observations)
 
@@ -249,10 +249,10 @@ for t in range(TENSES):
     for n in range(N):
         o = programs[t][0](inputs[n])
         cs = constrain_phonemes(o, observations[n][t])
-        constrain(cs)
-#        noise_penalties.append(If(And(*cs),
-#                                  0.0,
-#                                  logarithm(44)*len(observations[n][t].split(' '))))
+#        constrain(cs)
+        noise_penalties.append(If(And(*cs),
+                                  0.0,
+                                  logarithm(44)*len(observations[n][t].split(' '))))
 
 def printer(m):
     
