@@ -697,7 +697,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["@ s @ r t","@ s @ r t @ d","@ s @ r t I N","@ s @ r t @ d","@ s @ r t","@ s @ r t s"],
          ["h @ r t @ l","h @ r t @ l d","h @ r t l I N","h @ r t @ l d","h @ r t @ l","h u r t l e s"],
          ["k @ n v e","k @ n v e d","k @ n v e I N","k @ n v e d","k @ n v e","k @ n v e z"],
-         ["n i l","k n e e l e d","n i l I N","k n e e l e d","n i l","k n e e l s"],
+         ["n i l","n i l d","n i l I N","n i l d","n i l","n i l z"],
          ["s p a t","s p a t @ d","s p a t I N","s p a t @ d","s p a t","s p a t s"],
          ["i z","i z d","i z I N","i z d","i z","i z @ z"],
          ["\\ae n @ l a j z","\\ae n @ l a j z d","\\ae n @ l a j z I N","\\ae n @ l a j z d","\\ae n @ l a j z","@ n \\ae l @ s i z"],
@@ -1005,6 +1005,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
 irregular = ['f i d','T I N k','f @ r g E t','a w t S a j n','b @ f 5 l','s l i p','S u','S e k','g o','m I s h i r','s p i d','f a j n d','b l o','s m i t e','m I s r i d','I n t @ r w i v','r I N','s E n d','f i l','t S u z','o v @ r r a j d','o v @ r k @ m','a w t s E l','s w I m','d u','s t r I N','g E t','r E d','b I d','r a j z','b E r','r i m e k','b r e k','f 5 r t E l','n o','f a l','r i b I l d','f l i','s t r a j v','b @ s i t S','o v @ r f l a j','b r I N','t E r','d I g','l i v','s l a j d','f 5 r s e k','l u z','b I k @ m','a w t d u','s t i l','m i n','@ n w a j n d','o v @ r d u','d i l','@ n d @ r r a j t','@ w e k','s p r I N','d r 5','f r i z','s i','o v e r l i e','@ n d @ r t e k','p l i d','h i v','k r i p','k l o D','r e f r e e z e','h a j d','l E d','m I s s p E n d','l i p','b I g E t','s l i n k','n i l','u n s t i c k','b i','r @ n','f @ r g I v','@ n d u','w E r','s I N','t i t S','k @ m','T r o','S a j n','k l i v','o v @ r t e k','@ p h o l d','o v @ r s i','r i T I N k','k i p','s t r a j d','s w E r','s t \\ae n d','s w I N','@ n d @ r g o','u n d e r s h o o t','s I N k','r i v e','b r i d','f 5 r s i','o v e r s l e e p','w I T s t \\ae n d','f @ r b I d','w I n','o v @ r S u t','s w i p','r e b r e a k','r I N','f a j t','r i d u','s p i k','o v @ r h I r','t r E d','b a j t','r i r a j t','b l i d','s t r a j k','t E l','o v @ r h \\ae N','b a j','s p I t','s w E l','u n m a k e','@ n d @ r l a j','@ n d @ r s t \\ae n d','s t I k','k \\ae t S','h o l d','s p I n','i t','o v @ r r @ n','o v e r b e a r','S u t','r a j d','r i t E l','S I r','b a j n d','m i t','w e k','m I s @ n d @ r s t \\ae n d','m I s t e k','f o r b e a r','s t I N k','r e n d','s l e','b @ s p i k','s t I N','f l a j','s e','b E n d','h \\ae v','@ r a j z','w I T h o l d','s i k','s E l','l a j','s I t','m e k','f l I N','r a j t','T r a j v','f 5 r g o','t e k','k l I N','b @ h o l d','S r I N k','b I g I n','s l I N','l E n d','d a j v','d r I N k','h \\ae N','s n i k','b I l d','w i p','g r o','w i v','u n b i n d','g I v','l a j t','d r a j v','g r a j n d','m I s l i d','f 5 r s w E r','w @ D d r 5','h I r','a w t g r o','d r i m','s p E n d','w a j n d']
 
 def sample_corpus(n,l,irregulars):
+    if l == None: l = 1000
     choices = filter(lambda verb: all([ len(w.split(' ')) <= l for w in verb ]), verbs)
     if not irregulars:
         choices = filter(lambda verb: 0 == len([ w for w in verb if w in irregular ]),choices)
