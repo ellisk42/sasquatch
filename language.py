@@ -224,7 +224,8 @@ primitive_rule('STRING',
 
 #print sample_corpus(10,20,True)
 
-observations = minimal_pairs #sample_corpus(10,7,True) 
+observations = sample_corpus(10,None,True) #minimal_pairs
+latexTable(observations)
 N = len(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
@@ -248,10 +249,10 @@ for t in range(TENSES):
     for n in range(N):
         o = programs[t][0](inputs[n])
         cs = constrain_phonemes(o, observations[n][t])
-        constrain(cs)
-#        noise_penalties.append(If(And(*cs),
-#                                  0.0,
-#                                  logarithm(44)*len(observations[n][t].split(' '))))
+#        constrain(cs)
+        noise_penalties.append(If(And(*cs),
+                                  0.0,
+                                  logarithm(44)*len(observations[n][t].split(' '))))
 
 def printer(m):
     
@@ -276,25 +277,27 @@ flat_stems = [ v for sl in inputs for v in sl['stems'] ] + [ v['lemma'] for v in
 total = summation(noise_penalties + [N*TENSES*LF] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
 
 
-compressionLoop(printer,total)
-
-
-solver = get_solver()
-
-test_data = verbs #sample_corpus(4,4,True)
-#print test_data
-for test in test_data:
-    maximum_length = max([len(w.split(' ')) for w in test])
-    push_solver()
-    test_input = {'stems': [morpheme() for i in range(LS)],
-                  'flags': [boolean() for i in range(LF) ],
-                  'lemma': morpheme() }
-    test_input['last'] = last_one(test_input['lemma'])
-    for j in range(TENSES):
-        o = programs[j][0](test_input)
-        constrain(constrain_phonemes(o, test[j]))
-    if str(solver.check()) == 'sat':
-        print 'Passed test lemma %s' % extract_string(solver.model(),test_input['lemma'])
-    else:
-        print 'FAILURE: %s' % str(test)
-    pop_solver()
+if compressionLoop(printer,total)[0] == 'FAIL':
+    print 'FAIL\n0.0',
+else:
+    solver = get_solver()
+    
+    test_data = verbs #sample_corpus(4,4,True)
+    successes = 0
+    for test in test_data:
+        maximum_length = max([len(w.split(' ')) for w in test])
+        push_solver()
+        test_input = {'stems': [morpheme() for i in range(LS)],
+                      'flags': [boolean() for i in range(LF) ],
+                      'lemma': morpheme() }
+        test_input['last'] = last_one(test_input['lemma'])
+        for j in range(TENSES):
+            o = programs[j][0](test_input)
+            constrain(constrain_phonemes(o, test[j]))
+        if str(solver.check()) == 'sat':
+            print 'Passed test lemma %s' % extract_string(solver.model(),test_input['lemma'])
+            successes += 1
+        else:
+            print 'FAILURE: %s' % str(test)
+        pop_solver()
+    print float(successes)/float(len(test_data)),

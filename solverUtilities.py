@@ -1,14 +1,18 @@
 import sys
-sys.path.append('./Z3/build')
-from z3 import *
 import math
 import time
 import os
 
+OPTIMIZE = False # optimize sucks!
+if OPTIMIZE:
+    sys.path.append('./z3-opt/build')
+else:
+    sys.path.append('./Z3/build')
+from z3 import *
 
 
 
-slv = Solver()
+slv = Solver() if not OPTIMIZE else Optimize()
 
 def push_solver():
     slv.push()
@@ -110,29 +114,41 @@ def conditional(p,q,r):
 
 def compressionLoop(pr,mdl,verbose = True):
     global_start_time = time.time()
-    solver_time = 0
-    m = None
-    while True:
-        start_time = time.time()
-        if verbose: print "Checking model using Z3..."
-        if str(slv.check()) == 'sat':
-            m = slv.model()
-        else:
-            break
+    if OPTIMIZE:
+        slv.minimize(mdl)
+        k = slv.check()
+        if str(k) != 'sat': return 'FAIL', None
+        m = slv.model()
+        d = (time.time() - global_start_time)
+        if verbose:
+            print "Found model in %f sec" % d
+            print(pr(m))
+    else:
+        solver_time = 0
+        m = None
+        while True:
+            start_time = time.time()
+            if verbose: print "Checking model using Z3..."
+            if str(slv.check()) == 'sat':
+                m = slv.model()
+            else:
+                break
+            d = (time.time() - start_time)
+            solver_time += d
+            up = extract_real(m,mdl)
+            slv.add(mdl < up)
+            if verbose: 
+                print "Found model in %f sec" % d
+                print(pr(m))
+                print "MDL", up
+                print "Trying for a better one...\n"
         d = (time.time() - start_time)
-        if verbose: print "Found model in %f sec" % d
         solver_time += d
-        if verbose: print(pr(m))
-        up = extract_real(m,mdl)
-        if verbose: print "MDL", up
-        slv.add(mdl < up)
-        if verbose: print "Trying for a better one...\n"
-    d = (time.time() - start_time)
-    if verbose: print "Proved unsatisfiable in %f sec" % d
-    solver_time += d
-    if verbose: print "Total solver time: %f"  % solver_time
-    if m == None:
-        return 'FAIL',m
+        if verbose:
+            print "Proved unsatisfiable in %f sec" % d
+            print "Total solver time: %f"  % solver_time
+        if m == None:
+            return 'FAIL',m
     # compute structural assertions
     structure_constraints = []
     for v in structural_variables:
@@ -265,7 +281,7 @@ def generator(d, production):
 def clear_solver():
     global slv, rule_bank, structural_variables
     structural_variables = []
-    slv = Solver()
+    slv = Solver() if not OPTIMIZE else Optimize()
     productions = rule_bank.keys()
     for p in productions:
         if isinstance(rule_bank[p],list):

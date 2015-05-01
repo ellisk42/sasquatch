@@ -36,7 +36,7 @@ for D in range(1,3):
     rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
          lambda m, p, q: "(* %s %s)" % (p,q),
          lambda i, p, q: p*q)
-    e,m,pr = generator(2,'EXPRESSION')
+    e,m,pr = generator(3,'EXPRESSION')
     m = summation([m,dataMDL])
 
     push_solver() # new frame for the training data
@@ -52,8 +52,8 @@ for D in range(1,3):
     for o,y in zip(training_inputs, training_outputs):
         epsilon = 0.1
         yp = e(o)
-        constrain(yp > y - epsilon)
-        constrain(yp < y + epsilon)
+        constrain(yp >= y - epsilon)
+        constrain(yp <= y + epsilon)
     if len(solutions) > 0:
         bestLength = min(solutions)[0]
         constrain(m < bestLength)

@@ -109,8 +109,8 @@ def check_shape(shape, shapep):
     x,y,sh = shape
     xp,yp,sp = shapep
     if e > 0:
-        return [x < xp + e, x > xp - e,
-                y < yp + e, y > yp - e,
+        return [x <= xp + e, x >= xp - e,
+                y <= yp + e, y >= yp - e,
                 sh == sp]
     return [x == xp,y == yp,sh == sp]
 
