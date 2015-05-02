@@ -2,15 +2,26 @@ from solverUtilities import *
 import math
 import sys
 import time
+import re
 
 translational_noise = 7
 
+CONTAINS = True
+BORDERS = False
+
+LK = 0 # latent containments
+LB = 0 # latent borders
 LS = 1 # latent shapes
 
 '''
 Weird thing: the solver chokes if I don't represent shape constants as real numbers.
 '''
 
+class Observation:
+    def __init__(self,c,k,b):
+        self.coordinates = c
+        self.containment = k
+        self.bordering = b
 
 observations = []
 test_observations = []
@@ -25,14 +36,32 @@ for picture_file in sys.argv[1:]:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
         print "PICTURE: ", shapes
+        # parse qualitative information
+        containment = []
+        borderings = []
+        for l in picture[1:]:
+            k = re.match(r'contains\(([0-9]+), ?([0-9]+)\)',l)
+            b = re.match(r'borders([0-9]+), ?([0-9]+)\)',l)
+            if k:
+                containment.append((int(k.group(1)),int(k.group(2))))
+            if b:
+                borderings.append((int(b.group(1)),int(b.group(2))))
+        LK = max(LK,len(containment))
+        LB = max(LB,len(borderings))
+        shape_offset = 0 if reading_test_data else 10.0*len(observations)
+        composite = Observation([(x,y,s+shape_offset) for [x,y,sz,s] in shapes ],
+                                containment, borderings)
         if not reading_test_data:
             LS = max([LS] + [ shape[3]+1 for shape in shapes ])
-            observations.append([(x,y,s+10.0*len(observations)) for [x,y,sz,s] in shapes ])
+            observations.append(composite)
         else:
-            test_observations.append([(x,y,s)
-                                      for [x,y,sz,s] in shapes ])
+            test_observations.append(composite)
 
-
+picture_size = len(observations[0].coordinates)
+for observation in observations:
+    if len(observation.coordinates) != picture_size:
+        print "PARSING FAILURE"
+        os.exit()
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
     constrain(d > 0)
@@ -47,12 +76,12 @@ def move_turtle(x,y,tx,ty,d,ax,ay):
 
 def define_grammar(LP,LD,LA):
     if LD > 0:
-#        rule('ORIENTATION', ['ANGLE'],
-#             lambda m, a: a,
-#             lambda i, a: a)
         rule('ORIENTATION', [],
              lambda m: "0deg",
              lambda i: (1.0,0.0))
+        rule('ORIENTATION', [],
+             lambda m: "90deg",
+             lambda i: (0.0,1.0))
         indexed_rule('ORIENTATION', 'a', LA,
                      lambda (t,i): i['angles'])
         rule('LOCATE', ['DISTANCE','ORIENTATION'],
@@ -77,11 +106,56 @@ def define_grammar(LP,LD,LA):
     
     indexed_rule('SHAPE', 's', LS,
                  lambda (t,i): i['shapes'])
+    
+    rule('TOPOLOGY-OPTION',[],
+         lambda m: "",
+         lambda n: True)
+    rule('TOPOLOGY-OPTION',[],
+         lambda m: "-option",
+         lambda n: False)
+    def define_adjacency(i,j):
+        rule('TOPOLOGY-CONTAINS',['TOPOLOGY-OPTION'],
+             lambda m, o: "(assert (contains%s %i %i))" % (o,i,j),
+             lambda n, o: (o,i,j))
+        rule('TOPOLOGY-BORDERS',['TOPOLOGY-OPTION'],
+             lambda m,o: "(assert (borders%s %i %i))" % (o,i,j),
+             lambda n,o: (o,i,j))
+    for i in range(picture_size):
+        for j in range(picture_size):
+            if i == j: continue
+            define_adjacency(i,j)
 
-
+def topology_generator(d,relation):
+    relation_matrix = [[boolean() for i in range(d)] for j in range(d) ]
+    LISP_format = '(assert (contains %i %i))' if relation == CONTAINS else '(assert (borders %i %i))'
+    for j in range(d):
+        for i in range(d):
+            constrain(Not(relation_matrix[i][j]))
+            if relation == BORDERS:
+                constrain(relation_matrix[j][i] == relation_matrix[i][j])
+            else:
+                constrain(Not(And(relation_matrix[j][i], relation_matrix[i][j])))
+    
+    def pr(m):
+        s = ''
+        for i in range(d):
+            for j in range(d):
+                flag = extract_bool(m,relation_matrix[i][j])
+                if flag == '?':
+                    print 'bad flag'
+                if flag == 'True':
+                    s += LISP_format % (i,j)
+                    s += '\n'
+        return s
+    mdl = 0
+    for j in range(d):
+        for i in range(d):
+            mdl += If(relation_matrix[i][j],1.0,0.0)
+    mdl *= 2*logarithm(d)
+    return relation_matrix, mdl, pr
 
 def program_generator(d):
-    if d < len(observations[0]):
+    if d < picture_size:
         l, m1, pl = generator(5,'LOCATE')
         sh, m2, ps = generator(5,'SHAPE')
     else:
@@ -116,10 +190,13 @@ def check_shape(shape, shapep):
 
 # adds a constraint saying that the picture has to equal some permutation of the observation
 def check_picture(picture,observation):
-    permutation = permutation_indicators(len(picture))
-    permuted_picture = apply_permutation(permutation, picture)
-    for shape1, shape2 in zip(permuted_picture, observation):
+    permutation = permutation_indicators(len(picture.coordinates))
+    permuted_picture = apply_permutation(permutation, picture.coordinates)
+    for shape1, shape2 in zip(permuted_picture, observation.coordinates):
         constrain(check_shape(shape1, shape2))
+#    for (mandatory,ki) in picture.containment:
+        
+    
 
 def make_new_input(LA,LD,LP):
     ps = [ (real(), real()) for j in range(LP) ]
@@ -132,27 +209,27 @@ def make_new_input(LA,LD,LP):
         
 
 solutions = []    
-for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,len(observations[0])+1) ]:
+for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,picture_size+1) ]:
     # make sure that the latent dimensions make sense
     if LA > LD: continue
     if LA == 0 and LD > 0: continue # rotation invariance
-    if LP + LD > len(observations[0]): continue
+    if LP + LD > picture_size: continue
     
     clear_solver()
     define_grammar(LP, LD, LA)
        
-    draw_picture,mdl,pr = program_generator(len(observations[0]))
+    draw_picture,mdl,pr = program_generator(picture_size)
+    containment,containment_length,containment_printer = topology_generator(picture_size,CONTAINS)
     dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS)
-    mdl = summation([mdl,dataMDL])
+    mdl = summation([mdl,dataMDL,containment_length])
     
     # Push a frame to hold all of the training data
     push_solver()
     inputs = [ make_new_input(LA,LD,LP) for n in range(len(observations)) ]
 
     for i in range(len(observations)):
-        observation = observations[i]
         picture = draw_picture(inputs[i])
-        check_picture(picture,observation)
+        check_picture(Observation(picture,containment,[]),observations[i])
     
     # If we have a solution so far, ensure that we beat it
     if len(solutions) > 0:
@@ -161,7 +238,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,len(
     
     # modify printer so it also includes the latent dimensions
     def full_printer(m):
-        program = pr(m)+"\n"
+        program = pr(m)+containment_printer(m)+"\n"
         for n in range(len(observations)):
             program += "\nObservation %i:\n\t" % n
             for d in range(LP):
@@ -203,12 +280,13 @@ set_solver(solver)
 if test_observations:
     print "Test data log likelihoods:"
     for test in test_observations:
-        if len(test) != len(observations[0]) or max([ shape[2]+1 for shape in test ]) > LS:
+        if len(test.coordinates) != picture_size or max([ shape[2]+1 for shape in test.coordinates ]) > LS:
             print "-infinity"
             continue
         push_solver()
         inputs = make_new_input(LA,LD,LP)
         outputs = gen(inputs)
+        # todo: need to pack outputs up into an observation object
         check_picture(outputs,test)
         if 'sat' == str(solver.check()):
             print "-%f" % (10.0*(LA+LD+2*LP)+100.0*LS)
