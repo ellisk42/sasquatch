@@ -4,7 +4,7 @@ import sys
 import time
 import re
 
-translational_noise = 7
+translational_noise = 3
 
 CONTAINS = True
 BORDERS = False
@@ -148,7 +148,8 @@ def topology_generator(d,relation):
         return pt(m) + "\n" + rpt(m)
     ev = [t]+rt
     mdl = mt+rmt
-    data_description = mdt+rmdt
+    data_description = real()
+    constrain(mdt+rmdt == data_description)
     return ev, mdl, pr, data_description
 
 def program_generator(d):
@@ -191,7 +192,6 @@ def check_picture(picture,observation):
     permuted_picture = apply_permutation(permutation, picture.coordinates)
     for shape1, shape2 in zip(permuted_picture, observation.coordinates):
         constrain(check_shape(shape1, shape2))
-    # to do: add a  description length penalty for nonmandatory containment
     for (mandatory,l,r) in picture.containment:
         l = apply_permutation(permutation,l)
         r = apply_permutation(permutation,r)
@@ -270,11 +270,13 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
         print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
     else:
         print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-        solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture))
+        print containment_data
+        kd = extract_real(get_recent_model(),containment_data) if LK > 0 else 0
+        solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd))
 
 
 
-(m,p,LA,LD,LP,solver,gen) = min(solutions)
+(m,p,LA,LD,LP,solver,gen,k,kd) = min(solutions)
 print "="*40
 print "Best solution: %f bits (D,A,P = %i,%i,%i)" % (m,LD,LA,LP)
 print "="*40
@@ -285,16 +287,22 @@ set_solver(solver)
 if test_observations:
     print "Test data log likelihoods:"
     for test in test_observations:
-        if len(test.coordinates) != picture_size or max([ shape[2]+1 for shape in test.coordinates ]) > LS:
+        if (len(test.coordinates) != picture_size
+            or max([ shape[2]+1 for shape in test.coordinates ]) > LS
+            or len(test.containment) > LK
+            or len(test.bordering) > LB):
             print "-infinity"
             continue
         push_solver()
         inputs = make_new_input(LA,LD,LP)
         outputs = gen(inputs)
         # todo: need to pack outputs up into an observation object
-        check_picture(outputs,test)
+        check_picture(Observation(outputs,
+                                  k,
+                                  []),
+                      test)
         if 'sat' == str(solver.check()):
-            print "-%f" % (10.0*(LA+LD+2*LP)+100.0*LS)
+            print "-%f" % (10.0*(LA+LD+2*LP)+100.0*LS+kd)
         else:
             print "-infinity"
         pop_solver()

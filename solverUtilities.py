@@ -10,9 +10,12 @@ else:
     sys.path.append('./Z3/build')
 from z3 import *
 
-
-
 slv = Solver() if not OPTIMIZE else Optimize()
+
+recent_model = None
+def get_recent_model():
+    global recent_model
+    return recent_model
 
 def push_solver():
     slv.push()
@@ -113,6 +116,7 @@ def conditional(p,q,r):
 
 
 def compressionLoop(pr,mdl,verbose = True):
+    global recent_model
     global_start_time = time.time()
     if OPTIMIZE:
         slv.minimize(mdl)
@@ -131,6 +135,8 @@ def compressionLoop(pr,mdl,verbose = True):
             if verbose: print "Checking model using Z3..."
             if str(slv.check()) == 'sat':
                 m = slv.model()
+                recent_model = m
+                assert recent_model != None
             else:
                 break
             d = (time.time() - start_time)
@@ -156,7 +162,7 @@ def compressionLoop(pr,mdl,verbose = True):
             structure_constraints.append(v == m[v])
     # pop the frame that contains the training data
     pop_solver()
-    
+    assert recent_model != None    
     # constrain the solution to be the best one that we found
     slv.add(And(*structure_constraints))
     return pr(m), extract_real(m,mdl)
