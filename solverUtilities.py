@@ -28,6 +28,7 @@ def get_solver():
     global slv
     return slv
 
+
 next_Jensen = 1
 def new_symbol():
     global next_Jensen
@@ -115,8 +116,10 @@ def conditional(p,q,r):
     return tuple([ If(p,a,b) for a,b in zip(list(q),list(r)) ])
 
 
-def compressionLoop(pr,mdl,verbose = True):
+def compressionLoop(pr,mdl,verbose = True,timeout = None):
     global recent_model
+    if timeout:
+        slv.set("timeout",timeout)
     global_start_time = time.time()
     if OPTIMIZE:
         slv.minimize(mdl)
@@ -136,7 +139,6 @@ def compressionLoop(pr,mdl,verbose = True):
             if str(slv.check()) == 'sat':
                 m = slv.model()
                 recent_model = m
-                assert recent_model != None
             else:
                 break
             d = (time.time() - start_time)
@@ -162,7 +164,6 @@ def compressionLoop(pr,mdl,verbose = True):
             structure_constraints.append(v == m[v])
     # pop the frame that contains the training data
     pop_solver()
-    assert recent_model != None    
     # constrain the solution to be the best one that we found
     slv.add(And(*structure_constraints))
     return pr(m), extract_real(m,mdl)

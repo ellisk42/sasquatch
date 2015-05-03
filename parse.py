@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import sys
 import re
 
+tiny_threshold = 15
+
 # makes the mask bigger by one pixel around the borders
 def engorge(mask):
     engorged = mask
@@ -64,15 +66,7 @@ def analyze(filename):
     ns = ns-1
     shapes = shapes[1:,:,:]
     
-    # remove tiny shapes, these are artifacts
-    big_shapes = []
-    for s in xrange(0,ns):
-        if mass(shapes[s,:,:]) > 9: 
-            big_shapes = big_shapes + [s]
-    shapes = shapes[big_shapes,:,:]
-    ns = len(big_shapes)
-    
-    # fill in occluded shapes
+   # fill in occluded shapes
     for s in xrange(0,ns):
         fill(shapes[s,:,:],0,0,255,42)
         shapes[s,:,:] = np.vectorize(lambda x: 255 if x == 42 else 0)(shapes[s,:,:])
@@ -85,20 +79,50 @@ def analyze(filename):
         for sp in xrange(0,ns):
             if s != sp:
                 contains[s,sp] = np.sum(np.logical_and(na,masks[sp,:,:])) == 0
-    
     # compute contact information
     border_masks = masks
     for s in xrange(0,ns):
         border_masks[s,:,:] = engorge(engorge(border_masks[s,:,:]))
-        #plt.figure()
-        #plt.imshow(border_masks[s,:,:].astype(np.float32)*255.0,cmap=plt.cm.gray)
-        #plt.savefig('border'+str(s)+'.png')
+        if False:
+            plt.figure()
+            plt.imshow(border_masks[s,:,:].astype(np.float32)*255.0,cmap=plt.cm.gray)
+            plt.savefig('border'+str(s)+'.png')
 
     borders = np.zeros((ns,ns),dtype = np.bool_)
     for s in xrange(0,ns):
         for sp in xrange(0,ns):
             if s != sp and not contains[s,sp] and not contains[sp,s]:
                 borders[s,sp] = np.sum(np.logical_and(border_masks[s,:,:],border_masks[sp,:,:])) > 0
+                
+    # remove tiny shapes that are touching other shapes, these are artifacts
+    keep_shapes = []
+    for s in xrange(0,ns):
+        if mass(shapes[s,:,:]) > tiny_threshold: 
+            keep_shapes.append(s)
+        else:
+            conflict = False
+            for sp in range(ns):
+                if borders[s,sp] or contains[s,sp]:
+                    conflict = True
+                    break
+            if not conflict: keep_shapes.append(s)
+    # relabel the shapes
+    next_new_index = 0
+    new_indexes = {}
+    for s in range(ns):
+        if s in keep_shapes:
+            new_indexes[next_new_index] = s
+            next_new_index += 1
+    shapes = shapes[keep_shapes,:,:]
+    ns = len(keep_shapes)
+    new_contains = np.zeros((ns,ns),dtype = np.bool_)
+    new_borders = np.zeros((ns,ns),dtype = np.bool_)
+    for s in range(ns):
+        for sp in range(ns):
+            new_contains[s,sp] = contains[new_indexes[s],new_indexes[sp]]
+            new_borders[s,sp] = borders[new_indexes[s],new_indexes[sp]]
+    contains,borders = new_contains,new_borders
+
     
     centered = np.zeros((ns,w,h),dtype = np.int32)
     xs = [0]*ns

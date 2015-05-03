@@ -11,7 +11,7 @@ BORDERS = False
 
 LK = 0 # latent containments
 LB = 0 # latent borders
-LS = 1 # latent shapes
+LS = 0 # latent shapes
 
 '''
 Weird thing: the solver chokes if I don't represent shape constants as real numbers.
@@ -41,20 +41,20 @@ for picture_file in sys.argv[1:]:
         borderings = []
         for l in picture[1:]:
             k = re.match(r'contains\(([0-9]+), ?([0-9]+)\)',l)
-            b = re.match(r'borders([0-9]+), ?([0-9]+)\)',l)
+            b = re.match(r'borders\(([0-9]+), ?([0-9]+)\)',l)
             if k:
                 containment.append((int(k.group(1)),int(k.group(2))))
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
         print '\tBORDERS: %s' % str(borderings)
         print '\tCONTAINS: %s' % str(containment)
-        LK = max(LK,len(containment))
-        LB = max(LB,len(borderings))
         shape_offset = 0 if reading_test_data else 10.0*len(observations)
         composite = Observation([(x,y,s+shape_offset) for [x,y,sz,s] in shapes ],
                                 containment, borderings)
         if not reading_test_data:
             LS = max([LS] + [ shape[3]+1 for shape in shapes ])
+            LK = max(LK,len(containment))
+            LB = max(LB,len(borderings))
             observations.append(composite)
         else:
             test_observations.append(composite)
@@ -199,6 +199,13 @@ def check_picture(picture,observation):
                           Or(*[And(l[i],r[j]) for i,j in observation.containment ])))
     for i,j in observation.containment:
         constrain(Or(*[And(l[i],r[j]) for (mandatory,l,r) in picture.containment ]))
+    for (mandatory,l,r) in picture.bordering:
+        l = apply_permutation(permutation,l)
+        r = apply_permutation(permutation,r)
+        constrain(Implies(mandatory,
+                          Or(*[And(l[i],r[j]) for i,j in observation.bordering ])))
+    for i,j in observation.bordering:
+        constrain(Or(*[And(l[i],r[j]) for (mandatory,l,r) in picture.bordering ]))
         
         
     
@@ -225,8 +232,9 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
        
     draw_picture,mdl,pr = program_generator(picture_size)
     containment,containment_length,containment_printer,containment_data = topology_generator(LK,CONTAINS)
-    dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS+containment_data)
-    mdl = summation([mdl,dataMDL,containment_length])
+    borders,borders_length,borders_printer,borders_data = topology_generator(LB,BORDERS)
+    dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS+containment_data+borders_data)
+    mdl = summation([mdl,dataMDL,containment_length,borders_length])
     
     # Push a frame to hold all of the training data
     push_solver()
@@ -234,7 +242,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
 
     for i in range(len(observations)):
         picture = draw_picture(inputs[i])
-        check_picture(Observation(picture,containment,[]),observations[i])
+        check_picture(Observation(picture,containment,borders),observations[i])
     
     # If we have a solution so far, ensure that we beat it
     if len(solutions) > 0:
@@ -243,7 +251,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
     
     # modify printer so it also includes the latent dimensions
     def full_printer(m):
-        program = pr(m)+containment_printer(m)+"\n"
+        program = pr(m)+containment_printer(m)+borders_printer(m)+"\n"
         for n in range(len(observations)):
             program += "\nObservation %i:\n\t" % n
             for d in range(LP):
@@ -265,18 +273,18 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
                 program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh])))
             program = program + "\n"
         return program
-    p,m = compressionLoop(full_printer,mdl)
+    p,m = compressionLoop(full_printer,mdl,timeout = 3000)
     if m == None:
         print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
     else:
         print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-        print containment_data
         kd = extract_real(get_recent_model(),containment_data) if LK > 0 else 0
-        solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd))
+        bd = extract_real(get_recent_model(),borders_data) if LB > 0 else 0
+        solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
 
 
 
-(m,p,LA,LD,LP,solver,gen,k,kd) = min(solutions)
+(m,p,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
 print "="*40
 print "Best solution: %f bits (D,A,P = %i,%i,%i)" % (m,LD,LA,LP)
 print "="*40
@@ -299,10 +307,10 @@ if test_observations:
         # todo: need to pack outputs up into an observation object
         check_picture(Observation(outputs,
                                   k,
-                                  []),
+                                  b),
                       test)
         if 'sat' == str(solver.check()):
-            print "-%f" % (10.0*(LA+LD+2*LP)+100.0*LS+kd)
+            print "-%f" % (10.0*(LA+LD+2*LP)+100.0*LS+kd+bd)
         else:
             print "-infinity"
         pop_solver()
