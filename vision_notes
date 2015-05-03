@@ -6,6 +6,7 @@ R - rotation (0, 1/2)
 T - topology (4, 0/2)
 E - reflection over x-axis (0, 1/2)
 F - flipping of shapes (0, 1/2)
+Z - qualitative size information
 
 1: X
 two shapes that are either the same or different
@@ -41,8 +42,8 @@ four shapes other ranged in a square or randomly
 11: T
 two shapes either in contact or not in contact
 
-12:
-not going to get this one
+12: Z
+three shapes; one is equidistant from the other two. [class 0: equidistant shape is large] [class 1: equidistant shape is small]
 
 13: X
 four shapes, 2/2 big/small. tell whether the two pairs of big and small have the same relative position
@@ -56,8 +57,8 @@ four shapes arranged in a square; either they're all the same shape or different
 16: N
 six shapes. each coordinate reflected over the x-axis. either the shapes themselves are also reflected were they aren't. we can get this one for a stupid reason, eg, we will classify correctly but we will learn the wrong rule.
 
-17:
-some complicated predicate on the distances that involves a determinant
+17: ?
+four shapes; one is of a different kind. either all the locations are random, or the different shape is at the center of the parallelogram that would've been formed by flipping over the triangle formed by the other three shapes.
 
 18: N E
 six shapes. in one class the image is flipped over the X axis. in another class every pair of shapes shared the same y-coordinate but aren't necessarily flipped. eg, in one class, shapes come in pairs (x,y),(-x,y) and another class they come in pairs (x,y),(x',y)

@@ -35,7 +35,7 @@ for picture_file in sys.argv[1:]:
     with open(picture_file,'r') as picture:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
-        print "PICTURE: ", shapes
+        print "PICTURE:\n\t", shapes
         # parse qualitative information
         containment = []
         borderings = []
@@ -46,6 +46,8 @@ for picture_file in sys.argv[1:]:
                 containment.append((int(k.group(1)),int(k.group(2))))
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
+        print '\tBORDERS: %s' % str(borderings)
+        print '\tCONTAINS: %s' % str(containment)
         LK = max(LK,len(containment))
         LB = max(LB,len(borderings))
         shape_offset = 0 if reading_test_data else 10.0*len(observations)
@@ -114,45 +116,40 @@ def define_grammar(LP,LD,LA):
          lambda m: "-option",
          lambda n: False)
     def define_adjacency(i,j):
+        if i == j: return
+        il = [False]*picture_size
+        il[i] = True
+        jl = [False]*picture_size
+        jl[j] = True
+        il,jl = tuple(il),tuple(jl)
         rule('TOPOLOGY-CONTAINS',['TOPOLOGY-OPTION'],
              lambda m, o: "(assert (contains%s %i %i))" % (o,i,j),
-             lambda n, o: (o,i,j))
+             lambda n, o: (o,il,jl))
         rule('TOPOLOGY-BORDERS',['TOPOLOGY-OPTION'],
              lambda m,o: "(assert (borders%s %i %i))" % (o,i,j),
-             lambda n,o: (o,i,j))
+             lambda n,o: (o,il,jl))
     for i in range(picture_size):
         for j in range(picture_size):
-            if i == j: continue
             define_adjacency(i,j)
-
 def topology_generator(d,relation):
-    relation_matrix = [[boolean() for i in range(d)] for j in range(d) ]
-    LISP_format = '(assert (contains %i %i))' if relation == CONTAINS else '(assert (borders %i %i))'
-    for j in range(d):
-        for i in range(d):
-            constrain(Not(relation_matrix[i][j]))
-            if relation == BORDERS:
-                constrain(relation_matrix[j][i] == relation_matrix[i][j])
-            else:
-                constrain(Not(And(relation_matrix[j][i], relation_matrix[i][j])))
+    if d < 1: return [], 0.0, (lambda m: ""), 0
     
+    suffix = 'CONTAINS' if relation == CONTAINS  else 'BORDERS'
+    t,mt,pt = generator(1,'TOPOLOGY-'+suffix)
+    t = t(None) # run the generator, which takes no arguments
+    # data MDL
+    mdt = If(t[0], # is it mandatory?
+             0.0, # then it isn't generated stochastically
+             logarithm(2)) # otherwise it's generated with probability 1/2
+    
+    # recursive invocation
+    rt,rmt,rpt,rmdt = topology_generator(d-1,relation)
     def pr(m):
-        s = ''
-        for i in range(d):
-            for j in range(d):
-                flag = extract_bool(m,relation_matrix[i][j])
-                if flag == '?':
-                    print 'bad flag'
-                if flag == 'True':
-                    s += LISP_format % (i,j)
-                    s += '\n'
-        return s
-    mdl = 0
-    for j in range(d):
-        for i in range(d):
-            mdl += If(relation_matrix[i][j],1.0,0.0)
-    mdl *= 2*logarithm(d)
-    return relation_matrix, mdl, pr
+        return pt(m) + "\n" + rpt(m)
+    ev = [t]+rt
+    mdl = mt+rmt
+    data_description = mdt+rmdt
+    return ev, mdl, pr, data_description
 
 def program_generator(d):
     if d < picture_size:
@@ -194,7 +191,15 @@ def check_picture(picture,observation):
     permuted_picture = apply_permutation(permutation, picture.coordinates)
     for shape1, shape2 in zip(permuted_picture, observation.coordinates):
         constrain(check_shape(shape1, shape2))
-#    for (mandatory,ki) in picture.containment:
+    # to do: add a  description length penalty for nonmandatory containment
+    for (mandatory,l,r) in picture.containment:
+        l = apply_permutation(permutation,l)
+        r = apply_permutation(permutation,r)
+        constrain(Implies(mandatory,
+                          Or(*[And(l[i],r[j]) for i,j in observation.containment ])))
+    for i,j in observation.containment:
+        constrain(Or(*[And(l[i],r[j]) for (mandatory,l,r) in picture.containment ]))
+        
         
     
 
@@ -219,8 +224,8 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
     define_grammar(LP, LD, LA)
        
     draw_picture,mdl,pr = program_generator(picture_size)
-    containment,containment_length,containment_printer = topology_generator(picture_size,CONTAINS)
-    dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS)
+    containment,containment_length,containment_printer,containment_data = topology_generator(LK,CONTAINS)
+    dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS+containment_data)
     mdl = summation([mdl,dataMDL,containment_length])
     
     # Push a frame to hold all of the training data
