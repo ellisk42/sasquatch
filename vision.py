@@ -125,9 +125,10 @@ def define_grammar(LP,LD,LA):
         rule('TOPOLOGY-CONTAINS',['TOPOLOGY-OPTION'],
              lambda m, o: "(assert (contains%s %i %i))" % (o,i,j),
              lambda n, o: (o,il,jl))
-        rule('TOPOLOGY-BORDERS',['TOPOLOGY-OPTION'],
-             lambda m,o: "(assert (borders%s %i %i))" % (o,i,j),
-             lambda n,o: (o,il,jl))
+        if i < j:
+            rule('TOPOLOGY-BORDERS',['TOPOLOGY-OPTION'],
+                 lambda m,o: "(assert (borders%s %i %i))" % (o,i,j),
+                 lambda n,o: (o,il,jl))
     for i in range(picture_size):
         for j in range(picture_size):
             define_adjacency(i,j)
@@ -192,20 +193,22 @@ def check_picture(picture,observation):
     permuted_picture = apply_permutation(permutation, picture.coordinates)
     for shape1, shape2 in zip(permuted_picture, observation.coordinates):
         constrain(check_shape(shape1, shape2))
-    for (mandatory,l,r) in picture.containment:
-        l = apply_permutation(permutation,l)
-        r = apply_permutation(permutation,r)
+    picture_containment = [(mandatory,apply_permutation(permutation,l),apply_permutation(permutation,r))
+                           for (mandatory,l,r) in picture.containment ]
+    picture_bordering = [(mandatory,apply_permutation(permutation,l),apply_permutation(permutation,r))
+                           for (mandatory,l,r) in picture.bordering ]
+    for (mandatory,l,r) in picture_containment:
         constrain(Implies(mandatory,
                           Or(*[And(l[i],r[j]) for i,j in observation.containment ])))
     for i,j in observation.containment:
-        constrain(Or(*[And(l[i],r[j]) for (mandatory,l,r) in picture.containment ]))
-    for (mandatory,l,r) in picture.bordering:
-        l = apply_permutation(permutation,l)
-        r = apply_permutation(permutation,r)
+        constrain(Or(*[And(l[i],r[j]) for (mandatory,l,r) in picture_containment ]))
+    for (mandatory,l,r) in picture_bordering:
         constrain(Implies(mandatory,
-                          Or(*[And(l[i],r[j]) for i,j in observation.bordering ])))
+                          Or(*([And(l[i],r[j]) for i,j in observation.bordering ] + 
+                               [And(l[j],r[i]) for i,j in observation.bordering ]))))
     for i,j in observation.bordering:
-        constrain(Or(*[And(l[i],r[j]) for (mandatory,l,r) in picture.bordering ]))
+        constrain(Or(*([And(l[i],r[j]) for (mandatory,l,r) in picture_bordering ] + 
+                       [And(l[j],r[i]) for (mandatory,l,r) in picture_bordering ])))
         
         
     
