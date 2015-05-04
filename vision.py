@@ -100,12 +100,16 @@ def define_grammar(LP,LD,LA):
                  lambda (t,i): i['positions'])
     rule('LOCATE', ['POSITION'],
          lambda m, p: "(teleport %s)" % p,
-         lambda (t,i), (p, q): (p,q,1.0,0.0))
+         lambda (t,i), (p, q): (p,q,
+                                i['initial-dx'] if i['initial-dx'] else 1.0,
+                                i['initial-dy'] if i['initial-dy'] else 0.0))
     
     
     rule('INITIALIZE',[],
          lambda m: "(teleport r[0])",
-         lambda (t,i): (i['positions'][0][0],i['positions'][0][1],1.0,0.0))
+         lambda (t,i): (i['positions'][0][0],i['positions'][0][1],
+                        i['initial-dx'] if i['initial-dx'] else 1.0,
+                        i['initial-dy'] if i['initial-dy'] else 0.0))
     rule('INITIAL-SHAPE',[],
          lambda m: "s[0]",
          lambda (t,i): i['shapes'][0])
@@ -224,16 +228,23 @@ def make_new_input(LA,LD,LP):
     ts = [ (real(), real()) for j in range(LA) ]
     for tx,ty in ts:
         constrain_angle(tx,ty)
+    if LD > 0:
+        ix,iy = real(), real()
+        constrain_angle(iy,ix)
+    else:
+        ix,iy = None, None
     ss = real_numbers(LS)
-    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": ss, "positions": ps})
+    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": ss, "positions": ps,
+                       "initial-dx": ix, "initial-dy": iy})
         
 
 solutions = []    
-for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,picture_size+1) ]:
+for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
     # make sure that the latent dimensions make sense
     if LA > LD: continue
-    if LA == 0 and LD > 0: continue # rotation invariance
     if LP + LD > picture_size: continue
+    # do you have a latent initial rotation?
+    LI = LD > 0
     
     clear_solver()
     define_grammar(LP, LD, LA)
@@ -241,7 +252,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
     draw_picture,mdl,pr = program_generator(picture_size)
     containment,containment_length,containment_printer,containment_data = topology_generator(LK,CONTAINS)
     borders,borders_length,borders_printer,borders_data = topology_generator(LB,BORDERS)
-    dataMDL = len(observations)*(10.0*(LA+LD+2*LP)+100.0*LS+containment_data+borders_data)
+    dataMDL = len(observations)*(10.0*(LA+LD+2*LP+LI)+100.0*LS+containment_data+borders_data)
     mdl = summation([mdl,dataMDL,containment_length,borders_length])
     
     # Push a frame to hold all of the training data
@@ -268,6 +279,9 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
                                                             extract_real(m,inputs[n][1]['positions'][d][1])))
                 program += "\n\t"
             if LD > 0:
+                a = int(math.atan2(extract_real(m,inputs[n][1]['initial-dy']),
+                                   extract_real(m,inputs[n][1]['initial-dx']))/math.pi*180.0)
+                program += "initial-orientation = %f;\n\t" % a
                 for d in range(LD):
                     program = program + ("l[%s] = %f; " % (str(d), 
                                                            extract_real(m,inputs[n][1]['distances'][d])))
