@@ -326,7 +326,6 @@ if test_observations:
         push_solver()
         inputs = make_new_input(LA,LD,LP)
         outputs = gen(inputs)
-        # todo: need to pack outputs up into an observation object
         check_picture(Observation(outputs,
                                   k,
                                   b),
