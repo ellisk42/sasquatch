@@ -3,12 +3,14 @@ from solverUtilities import *
 from z3 import *
 import math
 import random
+import sys
 
 from corpus import verbs, latexTable, sample_corpus, minimal_pairs
 
+N = int(sys.argv[1])
+
+
 TENSES = 6
-LS = 0 # latent strings
-LF = 0 # latent flags
 
 # map between tipa and z3 character code
 ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', 'D': 'PD', 'R': 'PR', 't': 'Pt', 'd': 'Pd',
@@ -201,15 +203,6 @@ rule('GUARD', ['VOICE-GUARD','MANNER-GUARD','PLACE-GUARD','SIBILANT-GUARD'],
 rule('STEM', [],
      lambda m: 'lemma',
      lambda i: i['lemma'])
-indexed_rule('STEM', 'stem', LS,
-             lambda i: i['stems'])
-indexed_rule('FLAG', 'flag', LF,
-             lambda i: i['flags'])
-
-if LF > 0:
-    rule('GUARD',['FLAG'],
-         lambda m,v: v,
-         lambda i,v: v)
 rule('RETURN',['STEM','STRING'],
      lambda m, stem, suffix: stem if suffix == '\\textipa{}' else "(append %s %s)" % (stem,suffix),
      lambda i, p, q: concatenate(p,q))
@@ -222,11 +215,9 @@ rule('CONDITIONAL',['RETURN'],
 primitive_rule('STRING',
                primitive_string)
 
-#print sample_corpus(10,20,True)
 
-observations = sample_corpus(10,None,True) #minimal_pairs
+observations = sample_corpus(N,None,True)
 latexTable(observations)
-N = len(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
@@ -236,9 +227,7 @@ programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
 # Push a frame to hold all of the test data
 push_solver()
 
-inputs = [ {'stems': [morpheme() for i in range(LS)],
-            'flags': [boolean() for i in range(LF) ],
-            'lemma': morpheme() }
+inputs = [ {'lemma': morpheme() }
            for j in range(N) ]
 for j in range(N):
     inputs[j]['last'] = last_one(inputs[j]['lemma'])
@@ -262,19 +251,11 @@ def printer(m):
     model += "\n"
     for j in range(N):
         model += "lemma = %s\n" % extract_string(m,inputs[j]['lemma'])
-        if LS > 0:
-            model += "\t".join(["stem[%i] = %s" % (t,extract_string(m,inputs[j]['stems'][t])) 
-                                for t in range(LS) ])
-        if LF > 0:
-            model += "\n"
-            model += "\t".join(["flag[%i] = %s" % (f,extract_bool(m,inputs[j]['flags'][f]))
-                                for f in range(LF) ])
-            model += "\n"
     return model
 
 
-flat_stems = [ v for sl in inputs for v in sl['stems'] ] + [ v['lemma'] for v in inputs ]
-total = summation(noise_penalties + [N*TENSES*LF] + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
+flat_stems = [ v['lemma'] for v in inputs ]
+total = summation(noise_penalties + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
 
 
 if compressionLoop(printer,total)[0] == 'FAIL':
@@ -282,14 +263,12 @@ if compressionLoop(printer,total)[0] == 'FAIL':
 else:
     solver = get_solver()
     
-    test_data = verbs #sample_corpus(4,4,True)
+    test_data = verbs
     successes = 0
     for test in test_data:
         maximum_length = max([len(w.split(' ')) for w in test])
         push_solver()
-        test_input = {'stems': [morpheme() for i in range(LS)],
-                      'flags': [boolean() for i in range(LF) ],
-                      'lemma': morpheme() }
+        test_input = {'lemma': morpheme() }
         test_input['last'] = last_one(test_input['lemma'])
         for j in range(TENSES):
             o = programs[j][0](test_input)

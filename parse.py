@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 import sys
 import re
 
-tiny_threshold = 15
+# remove anything smaller than this that is in contact with anything bigger than this
+tiny_threshold = 50
+# anything below this threshold is always removed
+super_tiny_threshold = 5
 
 # makes the mask bigger by one pixel around the borders
 def engorge(mask):
@@ -81,28 +84,32 @@ def analyze(filename):
                 contains[s,sp] = np.sum(np.logical_and(na,masks[sp,:,:])) == 0
     # compute contact information
     border_masks = masks
+    big_border_masks = masks
     for s in xrange(0,ns):
-        border_masks[s,:,:] = engorge(engorge(border_masks[s,:,:]))
+        border_masks[s,:,:] = engorge(border_masks[s,:,:])
+        big_border_masks[s,:,:] = engorge(border_masks[s,:,:])
         if False:
             plt.figure()
             plt.imshow(border_masks[s,:,:].astype(np.float32)*255.0,cmap=plt.cm.gray)
             plt.savefig('border'+str(s)+'.png')
 
     borders = np.zeros((ns,ns),dtype = np.bool_)
+    big_borders = np.zeros((ns,ns),dtype = np.bool_)
     for s in xrange(0,ns):
         for sp in xrange(0,ns):
             if s != sp and not contains[s,sp] and not contains[sp,s]:
                 borders[s,sp] = np.sum(np.logical_and(border_masks[s,:,:],border_masks[sp,:,:])) > 0
-                
+                big_borders[s,sp] = np.sum(np.logical_and(big_border_masks[s,:,:],big_border_masks[sp,:,:])) > 0                
     # remove tiny shapes that are touching other shapes, these are artifacts
     keep_shapes = []
     for s in xrange(0,ns):
-        if mass(shapes[s,:,:]) > tiny_threshold: 
+        sm = mass(shapes[s,:,:])
+        if sm > tiny_threshold: 
             keep_shapes.append(s)
-        else:
+        elif sm > super_tiny_threshold:
             conflict = False
             for sp in range(ns):
-                if borders[s,sp] or contains[s,sp]:
+                if big_borders[s,sp] or contains[s,sp]:
                     conflict = True
                     break
             if not conflict: keep_shapes.append(s)
@@ -159,7 +166,7 @@ def analyze(filename):
                 os = os + "contains(" + str(s) + ", " + str(sp) + ");\n"
     for s in xrange(0,ns):
         for sp in xrange(0,ns):
-            if s != sp and borders[s,sp]:
+            if s < sp and borders[s,sp]:
                 os = os + "borders(" + str(s) + ", " + str(sp) + ");\n"
     return os
 
@@ -168,12 +175,13 @@ sys.setrecursionlimit(128*128)
 
 jobs = []
 
-if os.path.isdir(sys.argv[1]):
-    for f in os.listdir(sys.argv[1]):
-        if f.endswith(".png"):
-            jobs = jobs + [sys.argv[1] + "/" + f]
-else:
-    jobs = jobs + [sys.argv[1]]
+for argument in sys.argv[1:]:
+    if os.path.isdir(argument):
+        for f in os.listdir(argument):
+            if f.endswith(".png"):
+                jobs = jobs + [argument + "/" + f]
+    else:
+        jobs = jobs + [argument]
 for j in jobs:
     print j
     a = analyze(j)

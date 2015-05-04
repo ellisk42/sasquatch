@@ -4,7 +4,8 @@ import sys
 import time
 import re
 
-translational_noise = 3
+translational_noise = 5
+solver_timeout = 10
 
 CONTAINS = True
 BORDERS = False
@@ -84,6 +85,9 @@ def define_grammar(LP,LD,LA):
         rule('ORIENTATION', [],
              lambda m: "90deg",
              lambda i: (0.0,1.0))
+        rule('ORIENTATION', [],
+             lambda m: "-90deg",
+             lambda i: (0.0,-1.0))
         indexed_rule('ORIENTATION', 'a', LA,
                      lambda (t,i): i['angles'])
         rule('LOCATE', ['DISTANCE','ORIENTATION'],
@@ -193,6 +197,7 @@ def check_picture(picture,observation):
     permuted_picture = apply_permutation(permutation, picture.coordinates)
     for shape1, shape2 in zip(permuted_picture, observation.coordinates):
         constrain(check_shape(shape1, shape2))
+    # permuted topology
     picture_containment = [(mandatory,apply_permutation(permutation,l),apply_permutation(permutation,r))
                            for (mandatory,l,r) in picture.containment ]
     picture_bordering = [(mandatory,apply_permutation(permutation,l),apply_permutation(permutation,r))
@@ -276,7 +281,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1,2] for d in [0,1,2] for p in range(1,pict
                 program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh])))
             program = program + "\n"
         return program
-    p,m = compressionLoop(full_printer,mdl,timeout = 3000)
+    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout*1000)
     if m == None:
         print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
     else:
