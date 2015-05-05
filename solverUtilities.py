@@ -119,7 +119,7 @@ def conditional(p,q,r):
 def compressionLoop(pr,mdl,verbose = True,timeout = None):
     global recent_model
     if timeout:
-        slv.set("timeout",timeout)
+        slv.set("timeout",timeout*1000)
     global_start_time = time.time()
     if OPTIMIZE:
         slv.minimize(mdl)
@@ -170,9 +170,6 @@ def compressionLoop(pr,mdl,verbose = True,timeout = None):
 
 
 
-'''
-SASQUATCH
-'''
 rule_bank = {}
 dirty_bank = False
 def rule(name, children, printer, evaluator):

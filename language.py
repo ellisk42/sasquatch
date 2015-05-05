@@ -7,10 +7,15 @@ import sys
 
 from corpus import verbs, latexTable, sample_corpus, minimal_pairs
 
+
+# indexes of the tenses that we will be learning on
+tenses = range(6)
+if sys.argv[1] == 'past':
+    tenses = [3]
+    sys.argv = sys.argv[1:]
+
+TENSES = len(tenses)
 N = int(sys.argv[1])
-
-
-TENSES = 6
 
 # map between tipa and z3 character code
 ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', 'D': 'PD', 'R': 'PR', 't': 'Pt', 'd': 'Pd',
@@ -219,6 +224,9 @@ primitive_rule('STRING',
 observations = sample_corpus(N,None,True)
 latexTable(observations)
 
+# only keep the relevant tenses
+observations = [ [observation[t] for t in tenses ] for observation in observations ]
+
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
 # for each tense, a different rule
@@ -266,6 +274,7 @@ else:
     test_data = verbs
     successes = 0
     for test in test_data:
+        test = [test[t] for t in tenses ]
         maximum_length = max([len(w.split(' ')) for w in test])
         push_solver()
         test_input = {'lemma': morpheme() }
@@ -274,7 +283,8 @@ else:
             o = programs[j][0](test_input)
             constrain(constrain_phonemes(o, test[j]))
         if str(solver.check()) == 'sat':
-            print 'Passed test lemma %s' % extract_string(solver.model(),test_input['lemma'])
+            print 'Passed test lemma %s for %s' % (extract_string(solver.model(),test_input['lemma']),
+                                                   test)
             successes += 1
         else:
             print 'FAILURE: %s' % str(test)

@@ -4,8 +4,8 @@ import sys
 import time
 import re
 
-translational_noise = 5
-solver_timeout = 10
+translational_noise = 3
+solver_timeout = 100
 
 CONTAINS = True
 BORDERS = False
@@ -242,7 +242,7 @@ def make_new_input(LA,LD,LP):
         
 
 solutions = []    
-for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
+for LA,LD,LP in [(1,1,2)]: #[(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
     # make sure that the latent dimensions make sense
     if LA > LD: continue
     if LP + LD > picture_size: continue
@@ -299,7 +299,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
             program = program + "\n"
         return program
     print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout*1000)
+    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout)
     if m == None:
         print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
     else:
