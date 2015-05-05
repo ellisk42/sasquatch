@@ -299,7 +299,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
             program = program + "\n"
         return program
     print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout)
+    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout*1000)
     if m == None:
         print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
     else:
