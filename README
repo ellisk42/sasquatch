@@ -3,3 +3,6 @@ Unsupervised program synthesis
 The general idea is to find the most compressive representation of the data, where we consider representations that are of the form f(x_i), where f is a program to be synthesized and x_i is an unobserved argument to that program. Through some noise model, f(x_i) produces the ith observation.
 
 Thus, we compress, or "squash" the data, hence the name Sasquatch.
+
+To run this software, install Z3 locally into a folder called Z3 in this directory.
+Download SVRT to produce the images, and then point parse.py at the results_problem_* directories to produce a pictures "folder" the contains the symbolic parses of the images.
