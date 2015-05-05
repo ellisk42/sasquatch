@@ -82,12 +82,15 @@ def define_grammar(LP,LD,LA):
         rule('ORIENTATION', [],
              lambda m: "0deg",
              lambda i: (1.0,0.0))
-        rule('ORIENTATION', [],
+        rule('TURN', [],
              lambda m: "90deg",
              lambda i: (0.0,1.0))
-        rule('ORIENTATION', [],
+        rule('TURN', [],
              lambda m: "-90deg",
              lambda i: (0.0,-1.0))
+        rule('ORIENTATION',['TURN'],
+             lambda m,t: t,
+             lambda i,t: t)
         indexed_rule('ORIENTATION', 'a', LA,
                      lambda (t,i): i['angles'])
         rule('LOCATE', ['DISTANCE','ORIENTATION'],
