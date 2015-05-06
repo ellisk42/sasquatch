@@ -1,4 +1,3 @@
-
 from solverUtilities import *
 from z3 import *
 import math
@@ -7,6 +6,8 @@ import sys
 
 from corpus import verbs, latexTable, sample_corpus, minimal_pairs
 
+# exception probability
+epsilon = 0.1
 
 # indexes of the tenses that we will be learning on
 tenses = range(6)
@@ -249,7 +250,7 @@ for t in range(TENSES):
 #        constrain(cs)
         noise_penalties.append(If(And(*cs),
                                   0.0,
-                                  logarithm(44)*len(observations[n][t].split(' '))))
+                                  -logarithm(epsilon)+logarithm(44)*len(observations[n][t].split(' '))))
 
 def printer(m):
     
@@ -273,6 +274,7 @@ else:
     
     test_data = verbs
     successes = 0
+    likelihood = 0.0
     for test in test_data:
         test = [test[t] for t in tenses ]
         maximum_length = max([len(w.split(' ')) for w in test])
@@ -286,7 +288,9 @@ else:
             print 'Passed test lemma %s for %s' % (extract_string(solver.model(),test_input['lemma']),
                                                    test)
             successes += 1
+            likelihood += logarithm(44)*extract_int(solver.model(),test_input['lemma'][0])
         else:
             print 'FAILURE: %s' % str(test)
+            likelihood += -logarithm(epsilon)+logarithm(44)*maximum_length
         pop_solver()
-    print float(successes)/float(len(test_data)),
+    print float(successes)/float(len(test_data)), likelihood,
