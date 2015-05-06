@@ -1036,3 +1036,14 @@ minimal_pairs = [["p e","p e d","p e I N","p e d","p e","p e z"],
                  ["p a p","p a p t","p a p I N","p a p t","p a p","p a p s"],
                  ["p U S","p U S t","p U S I N","p U S t","p U S","p U S @ z"]]
 
+
+albright = ["b a j z",
+            "d a j z",
+            "d r a j s",
+            "f l I d g",
+            "f r o",
+            "g E r",
+            "g l I p",
+            "r a j f",
+            "s t I n",
+            "s t I p"]
