@@ -4,7 +4,7 @@ import math
 import random
 import sys
 
-from corpus import verbs, latexTable, sample_corpus, minimal_pairs
+from corpus import verbs, latexTable, sample_corpus, minimal_pairs, unsupervised
 
 # exception probability
 epsilon = 0.1
@@ -227,6 +227,8 @@ latexTable(observations)
 
 # only keep the relevant tenses
 observations = [ [observation[t] for t in tenses ] for observation in observations ]
+observations = [[u] for u in unsupervised ]
+N = len(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 
@@ -247,10 +249,10 @@ for t in range(TENSES):
     for n in range(N):
         o = programs[t][0](inputs[n])
         cs = constrain_phonemes(o, observations[n][t])
-#        constrain(cs)
-        noise_penalties.append(If(And(*cs),
-                                  0.0,
-                                  -logarithm(epsilon)+logarithm(44)*len(observations[n][t].split(' '))))
+        constrain(cs)
+#       noise_penalties.append(If(And(*cs),
+#                                  0.0,
+#                                  -logarithm(epsilon)+logarithm(44)*len(observations[n][t].split(' '))))
 
 def printer(m):
     

@@ -90,6 +90,8 @@ def constrain_angle(dx,dy):
     constrain(dx*dx + dy*dy == 1)
 
 def extract_real(m,r):
+    if m[r] == None:
+        print r
     return float(m[r].as_decimal(3).replace('?',''))
 def extract_int(m,i):
     return int(m[i])

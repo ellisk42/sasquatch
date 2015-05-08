@@ -5,7 +5,7 @@ import time
 import re
 
 translational_noise = 3
-solver_timeout = 100
+solver_timeout = 3
 
 CONTAINS = True
 BORDERS = False
@@ -53,7 +53,7 @@ for picture_file in sys.argv[1:]:
         composite = Observation([(x,y,s+shape_offset) for [x,y,sz,s] in shapes ],
                                 containment, borderings)
         if not reading_test_data:
-            LS = max([LS] + [ shape[3]+1 for shape in shapes ])
+            LS = max([LS] + [ shape[3] for shape in shapes ])
             LK = max(LK,len(containment))
             LB = max(LB,len(borderings))
             observations.append(composite)
@@ -242,7 +242,7 @@ def make_new_input(LA,LD,LP):
         
 
 solutions = []    
-for LA,LD,LP in [(1,1,2)]: #[(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
+for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
     # make sure that the latent dimensions make sense
     if LA > LD: continue
     if LP + LD > picture_size: continue
@@ -322,7 +322,7 @@ if test_observations:
     print "Test data log likelihoods:"
     for test in test_observations:
         if (len(test.coordinates) != picture_size
-            or max([ shape[2]+1 for shape in test.coordinates ]) > LS
+            or max([ shape[2] for shape in test.coordinates ]) > LS
             or len(test.containment) > LK
             or len(test.bordering) > LB):
             print "-infinity"
