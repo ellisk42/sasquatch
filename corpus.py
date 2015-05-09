@@ -1047,3 +1047,5 @@ albright = ["b a j z",
             "r a j f",
             "s t I n",
             "s t I p"]
+
+unsupervised = ["n i d @ d","w @ r k t","S o d","p l e d","w e t @ d","\\ae d @ d","h o p t","E n d @ d","\\ae k t @ d"]*5

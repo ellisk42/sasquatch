@@ -9,8 +9,6 @@ import re
 
 # remove anything smaller than this that is in contact with anything bigger than this
 tiny_threshold = 50
-# anything below this threshold is always removed
-super_tiny_threshold = 5
 
 # makes the mask bigger by one pixel around the borders
 def engorge(mask):
@@ -22,18 +20,64 @@ def engorge(mask):
     return engorged
 
 
-def mass(a):
-    return np.sum(a < 255)
+class Shape():
+    def __init__(self,mask):
+        self.initialize(mask)
+    def initialize(self,mask):
+        self.mask = mask
+        self.negative = np.logical_not(mask)
+        self.mass = np.sum(mask)
+        self.contains = []
+        self.borders = []
+        self.merge_borders = []
+        self.name = None
+        
+        self.outline = engorge(engorge(self.mask))
+        self.merge_outline = engorge(self.outline)
+        
+        # compute center of mass
+        w = mask.shape[0]
+        h = mask.shape[1]
+        xv, yv = np.meshgrid(np.arange(0,w),np.arange(0,h))
+        self.x = int(np.sum(self.mask*xv)/self.mass)
+        self.y = int(np.sum(self.mask*yv)/self.mass)
+        
+        self.centered = np.roll(self.mask,w/2-self.x,1)
+        self.centered = np.roll(self.centered,h/2-self.y,0)
+        
+    def same_shape(self,other):
+        d = np.logical_xor(self.centered,other.centered)
+        return np.sum(d) < 5
+    def contains_other(self,other):
+        return np.sum(np.logical_and(self.negative,other.mask)) == 0
+    def touches(self,other):
+        return np.sum(np.logical_and(self.outline,other.outline)) > 0
+    def merge_touches(self,other):
+        return np.sum(np.logical_and(self.merge_outline,other.merge_outline)) > 0
+    def merge_with(self,other):
+        new_mask = np.logical_or(self.mask,other.mask)
+        self.initialize(new_mask)
 
-def com(a):
-    w = a.shape[0]
-    h = a.shape[1]
-    xv, yv = np.meshgrid(np.arange(0,w),np.arange(0,h))
-    mask = a < 255
-    m = np.sum(mask)
-    cx = np.sum(mask*xv)/m
-    cy = np.sum(mask*yv)/m
-    return cx,cy
+# resets all of the qualitative information
+def compute_qualitative(shapes):
+    for s in shapes:
+        s.contains = []
+        s.borders = []
+        s.merge_borders = []
+    for s in shapes:
+        for z in shapes:
+            if s == z: continue
+            if s.contains_other(z):
+                s.contains.append(z)
+    for s in shapes:
+        for z in shapes:
+            if s == z or s in z.contains or z in s.contains: continue
+            if s.touches(z):
+                s.borders.append(z)
+            if s.merge_touches(z):
+                s.merge_borders.append(z)
+
+
 
 def fill(a,x,y,o,n):
     w = a.shape[0]
@@ -74,99 +118,50 @@ def analyze(filename):
         fill(shapes[s,:,:],0,0,255,42)
         shapes[s,:,:] = np.vectorize(lambda x: 255 if x == 42 else 0)(shapes[s,:,:])
     
-    # compute containment information
-    masks = shapes < 255
-    contains = np.zeros((ns,ns),dtype = np.bool_)
-    for s in xrange(0,ns):
-        na = np.logical_not(masks[s,:,:])
-        for sp in xrange(0,ns):
-            if s != sp:
-                contains[s,sp] = np.sum(np.logical_and(na,masks[sp,:,:])) == 0
-    # compute contact information
-    border_masks = masks
-    big_border_masks = masks
-    for s in xrange(0,ns):
-        border_masks[s,:,:] = engorge(border_masks[s,:,:])
-        big_border_masks[s,:,:] = engorge(border_masks[s,:,:])
-        if False:
-            plt.figure()
-            plt.imshow(border_masks[s,:,:].astype(np.float32)*255.0,cmap=plt.cm.gray)
-            plt.savefig('border'+str(s)+'.png')
+    # pack everything up into objects
+    shapes = [ Shape(shapes[s,:,:] < 255) for s in range(ns) ]
 
-    borders = np.zeros((ns,ns),dtype = np.bool_)
-    big_borders = np.zeros((ns,ns),dtype = np.bool_)
-    for s in xrange(0,ns):
-        for sp in xrange(0,ns):
-            if s != sp and not contains[s,sp] and not contains[sp,s]:
-                borders[s,sp] = np.sum(np.logical_and(border_masks[s,:,:],border_masks[sp,:,:])) > 0
-                big_borders[s,sp] = np.sum(np.logical_and(big_border_masks[s,:,:],big_border_masks[sp,:,:])) > 0                
-    # remove tiny shapes that are touching other shapes, these are artifacts
-    keep_shapes = []
-    for s in xrange(0,ns):
-        sm = mass(shapes[s,:,:])
-        if sm > tiny_threshold: 
-            keep_shapes.append(s)
-        elif sm > super_tiny_threshold:
-            conflict = False
-            for sp in range(ns):
-                if big_borders[s,sp] or contains[s,sp]:
-                    conflict = True
-                    break
-            if not conflict: keep_shapes.append(s)
-    # relabel the shapes
-    next_new_index = 0
-    new_indexes = {}
-    for s in range(ns):
-        if s in keep_shapes:
-            new_indexes[next_new_index] = s
-            next_new_index += 1
-    shapes = shapes[keep_shapes,:,:]
-    ns = len(keep_shapes)
-    new_contains = np.zeros((ns,ns),dtype = np.bool_)
-    new_borders = np.zeros((ns,ns),dtype = np.bool_)
-    for s in range(ns):
-        for sp in range(ns):
-            new_contains[s,sp] = contains[new_indexes[s],new_indexes[sp]]
-            new_borders[s,sp] = borders[new_indexes[s],new_indexes[sp]]
-    contains,borders = new_contains,new_borders
-
-    
-    centered = np.zeros((ns,w,h),dtype = np.int32)
-    xs = [0]*ns
-    ys = [0]*ns
-    for s in xrange(0,ns):
-        cx,cy = com(shapes[s,:,:])
-        ys[s] = int(cy)
-        xs[s] = int(cx)
-        centered[s,:,:] = np.roll(shapes[s,:,:],w/2-cx,1)
-        centered[s,:,:] = np.roll(centered[s,:,:],h/2-cy,0)
-    
-    # identify identical shapes
-    kind = [0]
-    for s in xrange(1,ns):
-        is_duplicate = False
-        for sp in xrange(0,s):
-            d = np.logical_xor(centered[s,:,:],centered[sp,:,:])
-            if np.sum(d) < 5:
-                kind = kind + [kind[sp]]
-                is_duplicate = True
+    # merger artifacts with what they came from
+    changed = True
+    while changed:
+        changed = False
+        compute_qualitative(shapes)
+        to_remove = None
+        for s,z in [(s,z) for s in shapes for z in shapes ]:
+            if s == z: continue
+            if z.mass < tiny_threshold and s.mass >= z.mass and z in s.merge_borders:
+                s.merge_with(z)
+                to_remove = z
                 break
-        if not is_duplicate:
-            kind = kind + [max(kind)+1]
-    
+        if to_remove:
+            changed = True
+            shapes.remove(to_remove)
+    ns = len(shapes)
+    # labeled the shapes
+    labeled = []
+    next_label = 1
+    for s in shapes:
+        for l in labeled:
+            if l.same_shape(s):
+                s.name = l.name
+                break
+        if not s.name:
+            s.name = next_label
+            next_label += 1
+        labeled.append(s)
     # build output string
-    os = ""
-    for s in xrange(0,ns):
-        os = os + "[" + str(xs[s]) + ", " + str(ys[s]) + ", " + str(mass(shapes[s,:,:])) + ", " + str(kind[s])+"]"
-        if s < ns-1: os = os + ", "
+    os = []
+    for s in shapes:
+        os.append("[" + str(s.x) + ", " + str(s.y) + ", " + str(s.mass) + ", " + str(s.name)+"]")
+    os = ','.join(os)
     os = os + "\n"
     for s in xrange(0,ns):
         for sp in xrange(0,ns):
-            if s != sp and contains[s,sp]:
+            if shapes[sp] in shapes[s].contains:
                 os = os + "contains(" + str(s) + ", " + str(sp) + ");\n"
     for s in xrange(0,ns):
         for sp in xrange(0,ns):
-            if s < sp and borders[s,sp]:
+            if s < sp and shapes[sp] in shapes[s].borders:
                 os = os + "borders(" + str(s) + ", " + str(sp) + ");\n"
     return os
 
@@ -188,7 +183,7 @@ for j in jobs:
     print a
     o = j[:-3]+"h"
     # useful special case
-    m = re.match("results_problem_(\d+)/sample_(\d)_(\d+).png",j)
+    m = re.match("svrt/results_problem_(\d+)/sample_(\d)_(\d+).png",j)
     if m:
         o = "pictures/%s_%s_%i" % (m.group(1),m.group(2),int(m.group(3)))
     with open(o,"w") as f:
