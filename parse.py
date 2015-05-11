@@ -24,9 +24,6 @@ tiny_threshold = 50
 # how different two things can be and still count is rescaled versions
 rescale_threshold = 3.06
 
-# factor by which to things have two different size in order for one to be a rescaled version
-rescale_size_factor = 0.8
-
 
 class Shape():
     def __init__(self,mask):
@@ -49,8 +46,6 @@ class Shape():
     def rescaled_shape(self,other):
         if self.mass > other.mass:
             return other.rescaled_shape(self)
-        if self.mass > other.mass * rescale_size_factor:
-            return False
         f = math.sqrt(float(self.mass) / float(other.mass))
         o = scale_mask(other.centered,f)
         #        view(self.centered)
@@ -259,6 +254,8 @@ sys.setrecursionlimit(128*128*2)
 jobs = []
 
 for argument in sys.argv[1:]:
+    if argument.isdigit():
+        argument = 'svrt/results_problem_%s' % argument
     if os.path.isdir(argument):
         for f in os.listdir(argument):
             if f.endswith(".png"):

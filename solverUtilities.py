@@ -336,7 +336,24 @@ def enum_rule(production, options):
     for j in range(len(options)):
         make_index(j)
 
-
+def imperative_generator(production, d):
+    if d == 0:
+        return (lambda state: ([],state)),0,(lambda m: "")
+    first_evaluate, first_length, first_print = generator(1,production)
+    
+    rest_evaluate, rest_length, rest_print = imperative_generator(production, d-1)
+        
+    def evaluate(state):
+        first_output, first_state = first_evaluate(state)
+        rest_output, rest_state = rest_evaluate(first_state)
+        return [first_output]+rest_output, rest_state
+    def printer(m):
+        return first_print(m) + "\n" + rest_print(m)
+    
+    mdl = real()
+    constrain(mdl == first_length + rest_length)
+    
+    return evaluate,mdl,printer
 
 # hacking parallelism
 # so many forks, it's a dinner party!!!

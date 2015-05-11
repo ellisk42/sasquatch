@@ -162,35 +162,15 @@ def define_grammar(LP,LD,LA):
         il,jl = tuple(il),tuple(jl)
         rule('TOPOLOGY-CONTAINS',['TOPOLOGY-OPTION'],
              lambda m, o: "(assert (contains%s %i %i))" % (o,i,j),
-             lambda n, o: (o,il,jl))
+             lambda n, o: ((o,il,jl),True))
         if i < j:
             rule('TOPOLOGY-BORDERS',['TOPOLOGY-OPTION'],
                  lambda m,o: "(assert (borders%s %i %i))" % (o,i,j),
-                 lambda n,o: (o,il,jl))
+                 lambda n,o: ((o,il,jl),True))
     for i in range(picture_size):
         for j in range(picture_size):
             define_adjacency(i,j)
 
-def topology_generator(d,relation):
-    if d < 1: return [], 0.0, (lambda m: ""), 0
-    
-    suffix = 'CONTAINS' if relation == CONTAINS  else 'BORDERS'
-    t,mt,pt = generator(1,'TOPOLOGY-'+suffix)
-    t = t(None) # run the generator, which takes no arguments
-    # data MDL
-    mdt = If(t[0], # is it mandatory?
-             0.0, # then it isn't generated stochastically
-             logarithm(2)) # otherwise it's generated with probability 1/2
-    
-    # recursive invocation
-    rt,rmt,rpt,rmdt = topology_generator(d-1,relation)
-    def pr(m):
-        return pt(m) + "\n" + rpt(m)
-    ev = [t]+rt
-    mdl = mt+rmt
-    data_description = real()
-    constrain(mdt+rmdt == data_description)
-    return ev, mdl, pr, data_description
 
 def program_generator(d):
     if d < picture_size:
@@ -280,8 +260,12 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     define_grammar(LP, LD, LA)
        
     draw_picture,mdl,pr = program_generator(picture_size)
-    containment,containment_length,containment_printer,containment_data = topology_generator(LK,CONTAINS)
-    borders,borders_length,borders_printer,borders_data = topology_generator(LB,BORDERS)
+    containment,containment_length,containment_printer = imperative_generator('TOPOLOGY-CONTAINS',LK)
+    containment = containment(None)[0]
+    containment_data = summation([ If(t[0],0,logarithm(2)) for t in containment ])
+    borders,borders_length,borders_printer = imperative_generator('TOPOLOGY-BORDERS',LB)
+    borders = borders(None)[0]
+    borders_data = summation([ If(t[0],0,logarithm(2)) for t in borders ])
     dataMDL = len(observations)*(10.0*(LA+LD+2*LP+LI)+100.0*LS+containment_data+borders_data)
     mdl = summation([mdl,dataMDL,containment_length,borders_length])
     
