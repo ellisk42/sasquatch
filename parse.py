@@ -1,23 +1,31 @@
 import os
+import sys
+
+
 import time
 import numpy as np
 import scipy
 import scipy.misc
 import matplotlib.pyplot as plt
-import sys
+import pylab
 import re
+from parser_utilities import *
+import math
+
+
+BACKGROUND = 245 # arbitrary
+BORDERCOLOR = 0 # not arbitrary, this is the border color of the pictures
+WHITE = 255 # also not arbitrary
+
 
 # remove anything smaller than this that is in contact with anything bigger than this
 tiny_threshold = 50
 
-# makes the mask bigger by one pixel around the borders
-def engorge(mask):
-    engorged = mask
-    engorged = np.logical_or(engorged,np.roll(mask,1,0))
-    engorged = np.logical_or(engorged,np.roll(mask,-1,0))
-    engorged = np.logical_or(engorged,np.roll(mask,1,1))
-    engorged = np.logical_or(engorged,np.roll(mask,-1,1))
-    return engorged
+# how different two things can be and still count is rescaled versions
+rescale_threshold = 3.06
+
+# factor by which to things have two different size in order for one to be a rescaled version
+rescale_size_factor = 0.8
 
 
 class Shape():
@@ -25,45 +33,153 @@ class Shape():
         self.initialize(mask)
     def initialize(self,mask):
         self.mask = mask
-        self.negative = np.logical_not(mask)
         self.mass = np.sum(mask)
         self.contains = []
         self.borders = []
         self.merge_borders = []
         self.name = None
         
-        self.outline = engorge(engorge(self.mask))
-        self.merge_outline = engorge(self.outline)
+        self.outline = mask_outline(mask)
         
-        # compute center of mass
-        w = mask.shape[0]
-        h = mask.shape[1]
-        xv, yv = np.meshgrid(np.arange(0,w),np.arange(0,h))
-        self.x = int(np.sum(self.mask*xv)/self.mass)
-        self.y = int(np.sum(self.mask*yv)/self.mass)
-        
-        self.centered = np.roll(self.mask,w/2-self.x,1)
-        self.centered = np.roll(self.centered,h/2-self.y,0)
+        self.x,self.y,self.centered = center_mask(mask,self.mass)
         
     def same_shape(self,other):
         d = np.logical_xor(self.centered,other.centered)
-        return np.sum(d) < 5
+        return np.sum(d) < 1
+    def rescaled_shape(self,other):
+        if self.mass > other.mass:
+            return other.rescaled_shape(self)
+        if self.mass > other.mass * rescale_size_factor:
+            return False
+        f = math.sqrt(float(self.mass) / float(other.mass))
+        o = scale_mask(other.centered,f)
+        #        view(self.centered)
+        #        view(scale_mask(other.centered,f))
+        differences = min([ np.sum(np.logical_xor(self.centered,n))
+                            for n in neighbor_matrices(o) ])
+        #        view(d)
+        r = float(differences)/math.sqrt(self.mass)
+        print differences, 'compared to', self.mass, 'ratio = ', r
+        return r < rescale_threshold
     def contains_other(self,other):
-        return np.sum(np.logical_and(self.negative,other.mask)) == 0
+        return mask_subset(other.mask,self.mask)
     def touches(self,other):
-        return np.sum(np.logical_and(self.outline,other.outline)) > 0
-    def merge_touches(self,other):
-        return np.sum(np.logical_and(self.merge_outline,other.merge_outline)) > 0
+        return mask_overlap(self.outline, other.mask) or mask_overlap(other.outline, self.mask)
     def merge_with(self,other):
         new_mask = np.logical_or(self.mask,other.mask)
         self.initialize(new_mask)
+
+
+
+
+
+# claims any borders that are both touching the shape and the background
+def claim_borders(i,s):
+    n1,n2,n3,n4 = neighbor_matrices(i)
+    touches_background = np.logical_or.reduce((n1 == BACKGROUND,
+                                               n2 == BACKGROUND,
+                                               n3 == BACKGROUND,
+                                               n4 == BACKGROUND))
+    touches_shape = np.logical_or.reduce((n1 == s,
+                                          n2 == s,
+                                          n3 == s,
+                                          n4 == s))
+    is_border = i == BORDERCOLOR
+    claim = np.logical_and.reduce((touches_background,touches_shape,is_border))
+    return i*(1-claim) + s*claim
+
+def fill_center(mask):
+    mask = mask*42
+    fill(mask,0,0,0,99)
+    return 1 - (mask == 99)
+    
+def connected_components(i):
+    w = i.shape[0]
+    h = i.shape[1]
+    ns = 1 # next shape
+    shapes = []
+    fill(i,0,0,WHITE,BACKGROUND)
+    for x in range(w):
+        for y in range(h):
+            if i[x,y] == WHITE:
+                fill(i,x,y,WHITE,ns)
+                # claim borders that touched the background
+                i = claim_borders(i,ns)
+                #view(fill_center(i == ns))
+                #view(255*fill_center(i == ns))
+                shapes.append(fill_center(i == ns))
+                i = replace(i,ns,BACKGROUND)
+                #view(i)
+                ns += 1
+
+    # plop all the shapes down
+    for j in range(len(shapes)):
+        s = shapes[j]
+        i = i*(1-s) + s*(j+1)
+
+    i = replace(i,BACKGROUND,-1)
+    # claim remaining borders
+    modified = True
+    while modified:
+        modified = False
+        for x in range(1,w-1):
+            for y in range(1,h-1):
+                if i[x,y] == 0:
+                    new = max(i[x-1,y],
+                              i[x+1,y],
+                              i[x,y-1],
+                              i[x,y+1])
+                    if new != 0:
+                        modified = True
+                        i[x,y] = new
+#                        fill(i,x,y,0,new)
+                    # try diagonals
+                    new = max(i[x-1,y-1],
+                              i[x-1,y+1],
+                              i[x+1,y-1],
+                              i[x+1,y+1])
+                    if new != 0:
+                        modified = True
+                        i[x,y] = new
+
+    # pull the shapes out of the picture again
+    for j in range(len(shapes)):
+        shapes[j] = fill_center(i == (j+1))
+    
+    i = replace(i,-1,BACKGROUND)
+    if False:
+        view(i*30)
+    artifact = {}
+    background_mask = i == BACKGROUND
+    for j,s in enumerate(shapes):
+        # see this touching the background
+        n1,n2,n3,n4 = neighbor_matrices(s)
+        n = np.logical_or.reduce((n1,n2,n3,n4))
+        if mask_overlap(background_mask,n):
+            artifact[j] = False
+        else:
+            # see if this is contained in something else
+            for jp in range(len(shapes)):
+                if j != jp and mask_subset(s,shapes[jp]):
+                    artifact[j] = False
+                    break
+            artifact[j] = artifact.get(j,True)
+    if False: # display only those that aren't artifacts
+        i[:] = BACKGROUND
+        for j,s in enumerate(shapes):
+            if not artifact[j]:
+                i = i*(1-s) + (j+2)*s
+        view(i*50)
+    return [Shape(s) for j,s in enumerate(shapes) if not artifact[j] ]
+
+
+
 
 # resets all of the qualitative information
 def compute_qualitative(shapes):
     for s in shapes:
         s.contains = []
         s.borders = []
-        s.merge_borders = []
     for s in shapes:
         for z in shapes:
             if s == z: continue
@@ -74,52 +190,12 @@ def compute_qualitative(shapes):
             if s == z or s in z.contains or z in s.contains: continue
             if s.touches(z):
                 s.borders.append(z)
-            if s.merge_touches(z):
-                s.merge_borders.append(z)
-
-
-
-def fill(a,x,y,o,n):
-    w = a.shape[0]
-    h = a.shape[1]
-    if x < w and y < h and x > -1 and y > -1 and a[x,y] == o:
-        a[x,y] = n
-        fill(a,x-1,y,o,n)
-        fill(a,x+1,y,o,n)
-        fill(a,x,y-1,o,n)
-        fill(a,x,y+1,o,n)
         
 
 def analyze(filename):
     i = scipy.misc.imread(filename,1)
     i = i.astype(np.int32) # [ [ int(x) for x in r ] for r in i]
-    w = i.shape[0]
-    h = i.shape[1]
-    ns = 1 # next shape
-    for x in xrange(0,w):
-        for y in xrange(0,h):
-            if i[x,y] == 255:
-                fill(i,x,y,255,ns)
-                ns = ns+1
-    ns = ns-1
-    
-    # isolate connected regions
-    shapes = np.zeros((ns,w,h),dtype = np.int32)
-    for s in xrange(0,ns):
-        shapes[s,:,:] = np.vectorize(lambda x: 255 if x == 0 else x)(i)
-        shapes[s,:,:] = np.vectorize(lambda x: 255 if x != (s+1) else 0)(shapes[s,:,:])
-        
-    # remove background
-    ns = ns-1
-    shapes = shapes[1:,:,:]
-    
-   # fill in occluded shapes
-    for s in xrange(0,ns):
-        fill(shapes[s,:,:],0,0,255,42)
-        shapes[s,:,:] = np.vectorize(lambda x: 255 if x == 42 else 0)(shapes[s,:,:])
-    
-    # pack everything up into objects
-    shapes = [ Shape(shapes[s,:,:] < 255) for s in range(ns) ]
+    shapes = connected_components(i)
 
     # merger artifacts with what they came from
     changed = True
@@ -129,7 +205,7 @@ def analyze(filename):
         to_remove = None
         for s,z in [(s,z) for s in shapes for z in shapes ]:
             if s == z: continue
-            if z.mass < tiny_threshold and s.mass >= z.mass and z in s.merge_borders:
+            if z.mass < tiny_threshold and s.mass >= z.mass and z in s.borders:
                 s.merge_with(z)
                 to_remove = z
                 break
@@ -146,13 +222,25 @@ def analyze(filename):
                 s.name = l.name
                 break
         if not s.name:
+            # see if this is a rescaling of a different shape
+            for l in labeled:
+                if s.rescaled_shape(l):
+                    if s.mass < l.mass:
+                        s.name = "small(%i)" % l.name
+                    else:
+                        s.name = l.name
+                        for lp in labeled:
+                            if lp.name == s.name:
+                                lp.name = "small(%i)" % s.name
+                    break
+        if not s.name:
             s.name = next_label
             next_label += 1
         labeled.append(s)
     # build output string
     os = []
     for s in shapes:
-        os.append("[" + str(s.x) + ", " + str(s.y) + ", " + str(s.mass) + ", " + str(s.name)+"]")
+        os.append("[" + str(s.x) + ", " + str(s.y) + ", " + str(s.name)+"]")
     os = ','.join(os)
     os = os + "\n"
     for s in xrange(0,ns):
@@ -166,7 +254,7 @@ def analyze(filename):
     return os
 
     
-sys.setrecursionlimit(128*128)
+sys.setrecursionlimit(128*128*2)
 
 jobs = []
 

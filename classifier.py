@@ -30,8 +30,8 @@ def classifier_accuracies(P,N,S):
     failures = find_bad_parses()
     positives = [ "pictures/%i_1_%i" % (P,x) for x in range(100) ]
     negatives = [ "pictures/%i_0_%i" % (P,x) for x in range(100) ]
-    positives = [p for p in positives if not (p in failures) ]
-    negatives = [p for p in negatives if not (p in failures) ]
+    #positives = [p for p in positives if not (p in failures) ]
+    #negatives = [p for p in negatives if not (p in failures) ]
     total_clean = len(positives) + len(negatives)
     test = ' '.join(positives + negatives)
     

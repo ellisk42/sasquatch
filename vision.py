@@ -10,6 +10,9 @@ solver_timeout = 3
 CONTAINS = True
 BORDERS = False
 
+NORMALSHAPE = True
+SMALLSHAPE = False
+
 LK = 0 # latent containments
 LB = 0 # latent borders
 LS = 0 # latent shapes
@@ -24,6 +27,13 @@ class Observation:
         self.containment = k
         self.bordering = b
 
+# every shape is a tuple of (modification,ID number)
+def small(j):
+    return (SMALLSHAPE,j)
+def normal(j):
+    return (NORMALSHAPE,j)
+
+
 observations = []
 test_observations = []
 reading_test_data = False
@@ -36,7 +46,10 @@ for picture_file in sys.argv[1:]:
     with open(picture_file,'r') as picture:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
-        print "PICTURE:\n\t", shapes
+        shapes = [ (x,y,j if isinstance(j,tuple) else normal(j)) for [x,y,j] in shapes ]
+        shapes = [ (x,y,s[1],s[0]) for (x,y,s) in shapes ]
+        if not reading_test_data:
+            print "PICTURE:\n\t", shapes
         # parse qualitative information
         containment = []
         borderings = []
@@ -47,24 +60,28 @@ for picture_file in sys.argv[1:]:
                 containment.append((int(k.group(1)),int(k.group(2))))
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
-        print '\tBORDERS: %s' % str(borderings)
-        print '\tCONTAINS: %s' % str(containment)
+        if not reading_test_data:
+            print '\tBORDERS: %s' % str(borderings)
+            print '\tCONTAINS: %s' % str(containment)
         shape_offset = 0 if reading_test_data else 10.0*len(observations)
-        composite = Observation([(x,y,s+shape_offset) for [x,y,sz,s] in shapes ],
+        composite = Observation([(x,y,s,q) for (x,y,s,q) in shapes ],
                                 containment, borderings)
         if not reading_test_data:
-            LS = max([LS] + [ shape[3] for shape in shapes ])
-            LK = max(LK,len(containment))
-            LB = max(LB,len(borderings))
             observations.append(composite)
         else:
             test_observations.append(composite)
 
-picture_size = len(observations[0].coordinates)
-for observation in observations:
-    if len(observation.coordinates) != picture_size:
-        print "PARSING FAILURE"
-        os.exit()
+# remove incorrectly parsed training data
+picture_size = distribution_mode([ len(observation.coordinates) 
+                                   for observation in observations ])
+observations = [o for o in observations
+                if len(o.coordinates) == picture_size]
+
+LS = int(max([ shape[2] for o in observations
+               for shape in o.coordinates ]))
+LK = max([ len(o.containment) for o in observations])
+LB = max([ len(o.bordering) for o in observations])
+
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
     constrain(d > 0)
@@ -113,12 +130,22 @@ def define_grammar(LP,LD,LA):
          lambda (t,i): (i['positions'][0][0],i['positions'][0][1],
                         i['initial-dx'] if i['initial-dx'] else 1.0,
                         i['initial-dy'] if i['initial-dy'] else 0.0))
-    rule('INITIAL-SHAPE',[],
-         lambda m: "s[0]",
-         lambda (t,i): i['shapes'][0])
+    rule('INITIAL-SHAPE',['SHAPE-SIZE'],
+         lambda m,z: ' '.join(["s[0]",z]),
+         lambda (t,i),z: (i['shapes'][0],z))
     
-    indexed_rule('SHAPE', 's', LS,
+    indexed_rule('SHAPE-INDEX', 's', LS,
                  lambda (t,i): i['shapes'])
+    
+    rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
+         lambda m,i,z: ' '.join([i,z]),
+         lambda i,s,z: (s,z))
+    rule('SHAPE-SIZE',[],
+         lambda m: '',
+         lambda i: NORMALSHAPE)
+    rule('SHAPE-SIZE',[],
+         lambda m: ' :small',
+         lambda i: SMALLSHAPE)
     
     rule('TOPOLOGY-OPTION',[],
          lambda m: "",
@@ -143,6 +170,7 @@ def define_grammar(LP,LD,LA):
     for i in range(picture_size):
         for j in range(picture_size):
             define_adjacency(i,j)
+
 def topology_generator(d,relation):
     if d < 1: return [], 0.0, (lambda m: ""), 0
     
@@ -181,7 +209,7 @@ def program_generator(d):
     def ev((t,i)):
         tp = l((t,i))
         sp = sh((t,i))
-        return [(tp[0],tp[1],sp)] + rest_of_picture((tp,i))
+        return [(tp[0],tp[1],sp[0],sp[1])] + rest_of_picture((tp,i))
     
     mdl = real()
     constrain(mdl == m1+m2+restMDL)
@@ -190,13 +218,12 @@ def program_generator(d):
 # returns an expression that asserts that the shapes are equal
 def check_shape(shape, shapep):
     e = translational_noise
-    x,y,sh = shape
-    xp,yp,sp = shapep
-    if e > 0:
-        return [x <= xp + e, x >= xp - e,
-                y <= yp + e, y >= yp - e,
-                sh == sp]
-    return [x == xp,y == yp,sh == sp]
+    x,y,sh,q = shape
+    xp,yp,sp,qp = shapep
+    return [x <= xp + e, x >= xp - e,
+            y <= yp + e, y >= yp - e,
+            sh == sp,
+            q == qp]
 
 # adds a constraint saying that the picture has to equal some permutation of the observation
 def check_picture(picture,observation):
@@ -309,6 +336,14 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
         solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
 
 
+
+# Failure to synthesize any program
+if len(solutions) == 0:
+    print "Failure to synthesize"
+    print "Test data log likelihoods:"
+    for t in test_observations:
+        print "-infinity"
+    sys.exit(0)
 
 (m,p,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
 print "="*40

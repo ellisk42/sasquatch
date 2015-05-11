@@ -389,3 +389,9 @@ def parallelCompression(pr,mdl,concrete,cores = 10):
             parallelBest = solution
     dinner_party([make_task(k) for k in concrete ],continuation,cores)
     print "BEST:\n%s" % parallelBest
+
+def distribution_mode(d):
+    k = {}
+    for x in d:
+        k[x] = k.get(x,0) + 1
+    return max([ (y,x) for x,y in k.items() ])[1]
