@@ -27,6 +27,8 @@ class Shape():
         self.y = y
         self.name = name
         self.small = small
+    def convert_to_tuple(self):
+        return (self.x,self.y,self.name,self.small)
     def __str__(self):
         if self.small:
             return "small(%i) @ (%i,%i)" % (self.name, self.x, self.y)
@@ -68,7 +70,7 @@ for picture_file in sys.argv[1:]:
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
         if not reading_test_data:
-            print "PICTURE:\n\t", shapes
+            print "PICTURE:\n\t", '\t'.join([ str(s) for s in shapes ])
             print '\tBORDERS: %s' % str(borderings)
             print '\tCONTAINS: %s' % str(containment)
         composite = Observation([ss for ss in shapes ],
@@ -149,10 +151,10 @@ def define_grammar(LP,LD,LA):
          lambda i,s,z: (s,z))
     rule('SHAPE-SIZE',[],
          lambda m: '',
-         lambda i: NORMALSHAPE)
+         lambda i: False)
     rule('SHAPE-SIZE',[],
          lambda m: ' :small',
-         lambda i: SMALLSHAPE)
+         lambda i: True)
     
     rule('DRAW-ACTION',['LOCATE','SHAPE'],
          lambda m,l,s: l + "\n" + s,
@@ -190,17 +192,16 @@ def define_grammar(LP,LD,LA):
 # returns an expression that asserts that the shapes are equal
 def check_shape(shape, shapep):
     e = translational_noise
-    x,y,sh,q = shape
-    xp,yp,sp,qp = shapep
-    return [x <= xp + e, x >= xp - e,
-            y <= yp + e, y >= yp - e,
-            sh == sp,
-            q == qp]
+    return [shape.x <= shapep.x + e, shape.x >= shapep.x - e,
+            shape.y <= shapep.y + e, shape.y >= shapep.y - e,
+            shape.name == shapep.name,
+            shape.small == shapep.small]
 
 # adds a constraint saying that the picture has to equal some permutation of the observation
 def check_picture(picture,observation):
     permutation = permutation_indicators(len(picture.coordinates))
     permuted_picture = apply_permutation(permutation, picture.coordinates)
+    permuted_picture = [ Shape(*p) for p in permuted_picture ]
     for shape1, shape2 in zip(permuted_picture, observation.coordinates):
         constrain(check_shape(shape1, shape2))
     # permuted topology
