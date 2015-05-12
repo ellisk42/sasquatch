@@ -127,7 +127,16 @@ def define_grammar(LP,LD,LA):
          lambda (t,i), (p, q): (p,q,
                                 i['initial-dx'] if i['initial-dx'] else 1.0,
                                 i['initial-dy'] if i['initial-dy'] else 0.0))
-    
+    rule('LOCATE', ['FLIP'],
+         lambda m, f: f,
+         lambda (t,i), f: f)
+    rule('FLIP',[],
+         lambda m: '(flip-Y)',
+         lambda ((x,y,dx,dy),i): (x,128-y,dx,dy))
+    rule('FLIP',[],
+         lambda m: '(flip-X)',
+         lambda ((x,y,dx,dy),i): (128-x,y,dx,dy))
+
     
     rule('INITIALIZE',[],
          lambda m: "(teleport r[0])",

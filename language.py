@@ -235,7 +235,7 @@ maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 # for each tense, a different rule
 programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
 
-# Push a frame to hold all of the test data
+# Push a frame to hold all of the training data
 push_solver()
 
 inputs = [ {'lemma': morpheme() }
