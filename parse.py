@@ -35,6 +35,7 @@ class Shape():
         self.borders = []
         self.merge_borders = []
         self.name = None
+        self.scale = 1.0
         
         self.outline = mask_outline(mask)
         
@@ -54,7 +55,6 @@ class Shape():
                             for n in neighbor_matrices(o) ])
         #        view(d)
         r = float(differences)/math.sqrt(self.mass)
-        print differences, 'compared to', self.mass, 'ratio = ', r
         return r < rescale_threshold
     def contains_other(self,other):
         return mask_subset(other.mask,self.mask)
@@ -215,18 +215,19 @@ def analyze(filename):
         for l in labeled:
             if l.same_shape(s):
                 s.name = l.name
+                s.scale = l.scale
                 break
         if not s.name:
             # see if this is a rescaling of a different shape
             for l in labeled:
                 if s.rescaled_shape(l):
+                    s.name = l.name
                     if s.mass < l.mass:
-                        s.name = "small(%i)" % l.name
+                        s.scale = s.mass/l.mass
                     else:
-                        s.name = l.name
                         for lp in labeled:
                             if lp.name == s.name:
-                                lp.name = "small(%i)" % s.name
+                                lp.scale = lp.mass/s.mass
                     break
         if not s.name:
             s.name = next_label
@@ -235,7 +236,9 @@ def analyze(filename):
     # build output string
     os = []
     for s in shapes:
-        os.append("[" + str(s.x) + ", " + str(s.y) + ", " + str(s.name)+"]")
+        small = s.scale < 1.0
+        name = str(s.name)
+        os.append("Shape(" + str(s.x) + ", " + str(s.y) + ", " + str(name)+", "+str(small)+")")
     os = ','.join(os)
     os = os + "\n"
     for s in xrange(0,ns):
@@ -273,7 +276,7 @@ for j in jobs:
         o = "pictures/%s_%s_%i" % (m.group(1),m.group(2),int(m.group(3)))
     with open(o,"w") as f:
         f.write(a)
-    print "."
+    print ""
 
 
  

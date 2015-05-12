@@ -63,7 +63,8 @@ def permutation_indicators(K):
         pick_exactly_one([indicators[i][c] for i in range(K) ])
     return indicators
             
-    
+def booleans(K):
+    return [ boolean() for i in range(K) ]
 def real_numbers(K):
     return [ real() for i in range(0,K) ]
 def integer_numbers(K):

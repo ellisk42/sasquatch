@@ -31,9 +31,9 @@ class Shape():
         return (self.x,self.y,self.name,self.small)
     def __str__(self):
         if self.small:
-            return "small(%i) @ (%i,%i)" % (self.name, self.x, self.y)
+            return "small(%i)@(%i,%i)" % (self.name, self.x, self.y)
         else:
-            return "%i @ (%i,%i)" % (self.name, self.x, self.y)
+            return "%i@(%i,%i)" % (self.name, self.x, self.y)
 
 class Observation:
     def __init__(self,c,k,b):
@@ -41,7 +41,6 @@ class Observation:
         self.containment = k
         self.bordering = b
 
-def small(j): return (SMALLSHAPE,j) # helpful for parsing
 
 observations = []
 test_observations = []
@@ -55,10 +54,6 @@ for picture_file in sys.argv[1:]:
     with open(picture_file,'r') as picture:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
-        shapes = [ Shape(x,y,j[1],True)
-                   if isinstance(j,tuple)
-                   else Shape(x,y,j,False)
-                   for [x,y,j] in shapes ]
         # parse qualitative information
         containment = []
         borderings = []
@@ -141,14 +136,14 @@ def define_grammar(LP,LD,LA):
                         i['initial-dy'] if i['initial-dy'] else 0.0))
     rule('INITIAL-SHAPE',['SHAPE-SIZE'],
          lambda m,z: '(draw s[0]%s)' % z,
-         lambda (t,i),z: (i['shapes'][0],z))
+         lambda (t,i),z: (i['shapes'][0][0],Or(z,i['shapes'][0][1])))
     
     indexed_rule('SHAPE-INDEX', 's', LS,
                  lambda (t,i): i['shapes'])
     
     rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
          lambda m,i,z: '(draw %s%s)' % (i,z),
-         lambda i,s,z: (s,z))
+         lambda i,s,z: (s[0],Or(z,s[1])))
     rule('SHAPE-SIZE',[],
          lambda m: '',
          lambda i: False)
@@ -237,7 +232,8 @@ def make_new_input(LA,LD,LP):
     else:
         ix,iy = None, None
     ss = real_numbers(LS)
-    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": ss, "positions": ps,
+    zs = booleans(LS)
+    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": zip(ss,zs), "positions": ps,
                        "initial-dx": ix, "initial-dy": iy})
         
 
@@ -299,7 +295,8 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
                     program = program + ("a[%i] = %i; " % (index, a))
                 program += "\n\t"
             for sh in range(LS):
-                program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh])))
+                program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh][0])))
+                program = program + ("s_small[%s] = %r; " % (str(sh), extract_bool(m,inputs[n][1]['shapes'][sh][1])))
             program = program + "\n"
         return program
     print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
@@ -334,14 +331,14 @@ if test_observations:
     print "Test data log likelihoods:"
     for test in test_observations:
         if (len(test.coordinates) != picture_size
-            or max([ shape[2] for shape in test.coordinates ]) > LS
+            or max([ shape.name for shape in test.coordinates ]) > LS
             or len(test.containment) > LK
             or len(test.bordering) > LB):
             print "-infinity"
             continue
         push_solver()
         inputs = make_new_input(LA,LD,LP)
-        outputs = gen(inputs)
+        outputs = gen(*inputs)
         check_picture(Observation(outputs,
                                   k,
                                   b),
