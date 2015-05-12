@@ -21,18 +21,25 @@ LS = 0 # latent shapes
 Weird thing: the solver chokes if I don't represent shape constants as real numbers.
 '''
 
+class Shape():
+    def __init__(self,x,y,name,small):
+        self.x = x
+        self.y = y
+        self.name = name
+        self.small = small
+    def __str__(self):
+        if self.small:
+            return "small(%i) @ (%i,%i)" % (self.name, self.x, self.y)
+        else:
+            return "%i @ (%i,%i)" % (self.name, self.x, self.y)
+
 class Observation:
     def __init__(self,c,k,b):
         self.coordinates = c
         self.containment = k
         self.bordering = b
 
-# every shape is a tuple of (modification,ID number)
-def small(j):
-    return (SMALLSHAPE,j)
-def normal(j):
-    return (NORMALSHAPE,j)
-
+def small(j): return (SMALLSHAPE,j) # helpful for parsing
 
 observations = []
 test_observations = []
@@ -46,10 +53,10 @@ for picture_file in sys.argv[1:]:
     with open(picture_file,'r') as picture:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
-        shapes = [ (x,y,j if isinstance(j,tuple) else normal(j)) for [x,y,j] in shapes ]
-        shapes = [ (x,y,s[1],s[0]) for (x,y,s) in shapes ]
-        if not reading_test_data:
-            print "PICTURE:\n\t", shapes
+        shapes = [ Shape(x,y,j[1],True)
+                   if isinstance(j,tuple)
+                   else Shape(x,y,j,False)
+                   for [x,y,j] in shapes ]
         # parse qualitative information
         containment = []
         borderings = []
@@ -61,10 +68,10 @@ for picture_file in sys.argv[1:]:
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
         if not reading_test_data:
+            print "PICTURE:\n\t", shapes
             print '\tBORDERS: %s' % str(borderings)
             print '\tCONTAINS: %s' % str(containment)
-        shape_offset = 0 if reading_test_data else 10.0*len(observations)
-        composite = Observation([(x,y,s,q) for (x,y,s,q) in shapes ],
+        composite = Observation([ss for ss in shapes ],
                                 containment, borderings)
         if not reading_test_data:
             observations.append(composite)
@@ -77,7 +84,7 @@ picture_size = distribution_mode([ len(observation.coordinates)
 observations = [o for o in observations
                 if len(o.coordinates) == picture_size]
 
-LS = int(max([ shape[2] for o in observations
+LS = int(max([ shape.name for o in observations
                for shape in o.coordinates ]))
 LK = max([ len(o.containment) for o in observations])
 LB = max([ len(o.bordering) for o in observations])
