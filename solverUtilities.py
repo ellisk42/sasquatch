@@ -250,7 +250,6 @@ def generator(d, production):
     def printer(m):
         for i in range(numberRules):
             flag = indicators[i]
-#            print "Trying", str(flag)
             if yes(m[flag]):
                 # using the ith rule
                 chosen_printer = rules[i][1]
@@ -322,17 +321,18 @@ def enum_rule(production, options):
     for j in range(len(options)):
         make_index(j)
 
-def imperative_generator(production, d):
+def imperative_generator(production, d, initial_production = None):
     if d == 0:
-        return (lambda state: ([],state)),0,(lambda m: "")
-    first_evaluate, first_length, first_print = generator(1,production)
+        return (lambda state,i: []),0,(lambda m: "")
+    p = initial_production if initial_production else production
+    first_evaluate, first_length, first_print = generator(1,p)
     
     rest_evaluate, rest_length, rest_print = imperative_generator(production, d-1)
         
-    def evaluate(state):
-        first_output, first_state = first_evaluate(state)
-        rest_output, rest_state = rest_evaluate(first_state)
-        return [first_output]+rest_output, rest_state
+    def evaluate(state,i):
+        first_output, first_state = first_evaluate((state,i))
+        rest_output = rest_evaluate(first_state,i)
+        return [first_output]+rest_output
     def printer(m):
         return first_print(m) + "\n" + rest_print(m)
     

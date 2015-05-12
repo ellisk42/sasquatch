@@ -131,14 +131,14 @@ def define_grammar(LP,LD,LA):
                         i['initial-dx'] if i['initial-dx'] else 1.0,
                         i['initial-dy'] if i['initial-dy'] else 0.0))
     rule('INITIAL-SHAPE',['SHAPE-SIZE'],
-         lambda m,z: ' '.join(["s[0]",z]),
+         lambda m,z: '(draw s[0]%s)' % z,
          lambda (t,i),z: (i['shapes'][0],z))
     
     indexed_rule('SHAPE-INDEX', 's', LS,
                  lambda (t,i): i['shapes'])
     
     rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
-         lambda m,i,z: ' '.join([i,z]),
+         lambda m,i,z: '(draw %s%s)' % (i,z),
          lambda i,s,z: (s,z))
     rule('SHAPE-SIZE',[],
          lambda m: '',
@@ -146,6 +146,13 @@ def define_grammar(LP,LD,LA):
     rule('SHAPE-SIZE',[],
          lambda m: ' :small',
          lambda i: SMALLSHAPE)
+    
+    rule('DRAW-ACTION',['LOCATE','SHAPE'],
+         lambda m,l,s: l + "\n" + s,
+         lambda state, (x,y,dx,dy), (s,z): ((x,y,s,z),(x,y,dx,dy)))
+    rule('INITIAL-DRAW',['INITIALIZE','INITIAL-SHAPE'],
+         lambda m,l,s: l + "\n" + s,
+         lambda state, (x,y,dx,dy), (s,z): ((x,y,s,z),(x,y,dx,dy)))
     
     rule('TOPOLOGY-OPTION',[],
          lambda m: "",
@@ -172,28 +179,6 @@ def define_grammar(LP,LD,LA):
             define_adjacency(i,j)
 
 
-def program_generator(d):
-    if d < picture_size:
-        l, m1, pl = generator(5,'LOCATE')
-        sh, m2, ps = generator(5,'SHAPE')
-    else:
-        l, m1, pl = generator(5,'INITIALIZE')
-        sh, m2, ps = generator(5,'INITIAL-SHAPE')
-    
-    rest_of_picture = lambda (t,i): []
-    restMDL, restPrint = 0, (lambda m: "")
-    if d > 1:
-        rest_of_picture, restMDL, restPrint = program_generator(d-1)
-    def pr(m):
-        return pl(m) + "\n(draw " + ps(m) + ")\n" + restPrint(m)
-    def ev((t,i)):
-        tp = l((t,i))
-        sp = sh((t,i))
-        return [(tp[0],tp[1],sp[0],sp[1])] + rest_of_picture((tp,i))
-    
-    mdl = real()
-    constrain(mdl == m1+m2+restMDL)
-    return ev, mdl, pr
 
 # returns an expression that asserts that the shapes are equal
 def check_shape(shape, shapep):
@@ -259,12 +244,12 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     clear_solver()
     define_grammar(LP, LD, LA)
        
-    draw_picture,mdl,pr = program_generator(picture_size)
+    draw_picture,mdl,pr = imperative_generator('DRAW-ACTION',picture_size,initial_production = 'INITIAL-DRAW')
     containment,containment_length,containment_printer = imperative_generator('TOPOLOGY-CONTAINS',LK)
-    containment = containment(None)[0]
+    containment = containment(None,None)
     containment_data = summation([ If(t[0],0,logarithm(2)) for t in containment ])
     borders,borders_length,borders_printer = imperative_generator('TOPOLOGY-BORDERS',LB)
-    borders = borders(None)[0]
+    borders = borders(None,None)
     borders_data = summation([ If(t[0],0,logarithm(2)) for t in borders ])
     dataMDL = len(observations)*(10.0*(LA+LD+2*LP+LI)+100.0*LS+containment_data+borders_data)
     mdl = summation([mdl,dataMDL,containment_length,borders_length])
@@ -274,7 +259,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     inputs = [ make_new_input(LA,LD,LP) for n in range(len(observations)) ]
 
     for i in range(len(observations)):
-        picture = draw_picture(inputs[i])
+        picture = draw_picture(*inputs[i])
         check_picture(Observation(picture,containment,borders),observations[i])
     
     # If we have a solution so far, ensure that we beat it
