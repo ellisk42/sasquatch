@@ -11,6 +11,9 @@ solver_timeout = 30
 CONTAINS = True
 BORDERS = False
 
+NORMALSHAPE = True
+SMALLSHAPE = False
+
 LK = 0 # latent containments
 LB = 0 # latent borders
 LS = 0 # latent shapes
@@ -19,11 +22,26 @@ LS = 0 # latent shapes
 Weird thing: the solver chokes if I don't represent shape constants as real numbers.
 '''
 
+class Shape():
+    def __init__(self,x,y,name,small):
+        self.x = x
+        self.y = y
+        self.name = name
+        self.small = small
+    def convert_to_tuple(self):
+        return (self.x,self.y,self.name,self.small)
+    def __str__(self):
+        if self.small:
+            return "small(%i)@(%i,%i)" % (self.name, self.x, self.y)
+        else:
+            return "%i@(%i,%i)" % (self.name, self.x, self.y)
+
 class Observation:
     def __init__(self,c,k,b):
         self.coordinates = c
         self.containment = k
         self.bordering = b
+
 
 observations = []
 test_observations = []
@@ -37,7 +55,6 @@ for picture_file in sys.argv[1:]:
     with open(picture_file,'r') as picture:
         picture = picture.readlines()
         shapes = eval('['+picture[0]+']')
-        print "PICTURE:\n\t", shapes
         # parse qualitative information
         containment = []
         borderings = []
@@ -48,24 +65,28 @@ for picture_file in sys.argv[1:]:
                 containment.append((int(k.group(1)),int(k.group(2))))
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
-        print '\tBORDERS: %s' % str(borderings)
-        print '\tCONTAINS: %s' % str(containment)
-        shape_offset = 0 if reading_test_data else 10.0*len(observations)
-        composite = Observation([(x,y,s+shape_offset) for [x,y,sz,s] in shapes ],
+        if not reading_test_data:
+            print "PICTURE:\n\t", '\t'.join([ str(s) for s in shapes ])
+            print '\tBORDERS: %s' % str(borderings)
+            print '\tCONTAINS: %s' % str(containment)
+        composite = Observation([ss for ss in shapes ],
                                 containment, borderings)
         if not reading_test_data:
-            LS = max([LS] + [ shape[3] for shape in shapes ])
-            LK = max(LK,len(containment))
-            LB = max(LB,len(borderings))
             observations.append(composite)
         else:
             test_observations.append(composite)
 
-picture_size = len(observations[0].coordinates)
-for observation in observations:
-    if len(observation.coordinates) != picture_size:
-        print "PARSING FAILURE"
-        os.exit()
+# remove incorrectly parsed training data
+picture_size = distribution_mode([ len(observation.coordinates) 
+                                   for observation in observations ])
+observations = [o for o in observations
+                if len(o.coordinates) == picture_size]
+
+LS = int(max([ shape.name for o in observations
+               for shape in o.coordinates ]))
+LK = max([ len(o.containment) for o in observations])
+LB = max([ len(o.bordering) for o in observations])
+
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
     constrain(d > 0)
@@ -107,19 +128,45 @@ def define_grammar(LP,LD,LA):
          lambda (t,i), (p, q): (p,q,
                                 i['initial-dx'] if i['initial-dx'] else 1.0,
                                 i['initial-dy'] if i['initial-dy'] else 0.0))
-    
+    rule('LOCATE', ['FLIP'],
+         lambda m, f: f,
+         lambda (t,i), f: f)
+    rule('FLIP',[],
+         lambda m: '(flip-Y)',
+         lambda ((x,y,dx,dy),i): (x,128-y,dx,dy))
+    rule('FLIP',[],
+         lambda m: '(flip-X)',
+         lambda ((x,y,dx,dy),i): (128-x,y,dx,dy))
+
     
     rule('INITIALIZE',[],
          lambda m: "(teleport r[0])",
          lambda (t,i): (i['positions'][0][0],i['positions'][0][1],
                         i['initial-dx'] if i['initial-dx'] else 1.0,
                         i['initial-dy'] if i['initial-dy'] else 0.0))
-    rule('INITIAL-SHAPE',[],
-         lambda m: "s[0]",
-         lambda (t,i): i['shapes'][0])
+    rule('INITIAL-SHAPE',['SHAPE-SIZE'],
+         lambda m,z: '(draw s[0]%s)' % z,
+         lambda (t,i),z: (i['shapes'][0][0],Or(z,i['shapes'][0][1])))
     
-    indexed_rule('SHAPE', 's', LS,
+    indexed_rule('SHAPE-INDEX', 's', LS,
                  lambda (t,i): i['shapes'])
+    
+    rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
+         lambda m,i,z: '(draw %s%s)' % (i,z),
+         lambda i,s,z: (s[0],Or(z,s[1])))
+    rule('SHAPE-SIZE',[],
+         lambda m: '',
+         lambda i: False)
+    rule('SHAPE-SIZE',[],
+         lambda m: ' :small',
+         lambda i: True)
+    
+    rule('DRAW-ACTION',['LOCATE','SHAPE'],
+         lambda m,l,s: l + "\n" + s,
+         lambda state, (x,y,dx,dy), (s,z): ((x,y,s,z),(x,y,dx,dy)))
+    rule('INITIAL-DRAW',['INITIALIZE','INITIAL-SHAPE'],
+         lambda m,l,s: l + "\n" + s,
+         lambda state, (x,y,dx,dy), (s,z): ((x,y,s,z),(x,y,dx,dy)))
     
     rule('TOPOLOGY-OPTION',[],
          lambda m: "",
@@ -136,73 +183,30 @@ def define_grammar(LP,LD,LA):
         il,jl = tuple(il),tuple(jl)
         rule('TOPOLOGY-CONTAINS',['TOPOLOGY-OPTION'],
              lambda m, o: "(assert (contains%s %i %i))" % (o,i,j),
-             lambda n, o: (o,il,jl))
+             lambda n, o: ((o,il,jl),True))
         if i < j:
             rule('TOPOLOGY-BORDERS',['TOPOLOGY-OPTION'],
                  lambda m,o: "(assert (borders%s %i %i))" % (o,i,j),
-                 lambda n,o: (o,il,jl))
+                 lambda n,o: ((o,il,jl),True))
     for i in range(picture_size):
         for j in range(picture_size):
             define_adjacency(i,j)
-def topology_generator(d,relation):
-    if d < 1: return [], 0.0, (lambda m: ""), 0
-    
-    suffix = 'CONTAINS' if relation == CONTAINS  else 'BORDERS'
-    t,mt,pt = generator(1,'TOPOLOGY-'+suffix)
-    t = t(None) # run the generator, which takes no arguments
-    # data MDL
-    mdt = If(t[0], # is it mandatory?
-             0.0, # then it isn't generated stochastically
-             logarithm(2)) # otherwise it's generated with probability 1/2
-    
-    # recursive invocation
-    rt,rmt,rpt,rmdt = topology_generator(d-1,relation)
-    def pr(m):
-        return pt(m) + "\n" + rpt(m)
-    ev = [t]+rt
-    mdl = mt+rmt
-    data_description = real()
-    constrain(mdt+rmdt == data_description)
-    return ev, mdl, pr, data_description
 
-def program_generator(d):
-    if d < picture_size:
-        l, m1, pl = generator(5,'LOCATE')
-        sh, m2, ps = generator(5,'SHAPE')
-    else:
-        l, m1, pl = generator(5,'INITIALIZE')
-        sh, m2, ps = generator(5,'INITIAL-SHAPE')
-    
-    rest_of_picture = lambda (t,i): []
-    restMDL, restPrint = 0, (lambda m: "")
-    if d > 1:
-        rest_of_picture, restMDL, restPrint = program_generator(d-1)
-    def pr(m):
-        return pl(m) + "\n(draw " + ps(m) + ")\n" + restPrint(m)
-    def ev((t,i)):
-        tp = l((t,i))
-        sp = sh((t,i))
-        return [(tp[0],tp[1],sp)] + rest_of_picture((tp,i))
-    
-    mdl = real()
-    constrain(mdl == m1+m2+restMDL)
-    return ev, mdl, pr
+
 
 # returns an expression that asserts that the shapes are equal
 def check_shape(shape, shapep):
     e = translational_noise
-    x,y,sh = shape
-    xp,yp,sp = shapep
-    if e > 0:
-        return [x <= xp + e, x >= xp - e,
-                y <= yp + e, y >= yp - e,
-                sh == sp]
-    return [x == xp,y == yp,sh == sp]
+    return [shape.x <= shapep.x + e, shape.x >= shapep.x - e,
+            shape.y <= shapep.y + e, shape.y >= shapep.y - e,
+            shape.name == shapep.name,
+            shape.small == shapep.small]
 
 # adds a constraint saying that the picture has to equal some permutation of the observation
 def check_picture(picture,observation):
     permutation = permutation_indicators(len(picture.coordinates))
     permuted_picture = apply_permutation(permutation, picture.coordinates)
+    permuted_picture = [ Shape(*p) for p in permuted_picture ]
     for shape1, shape2 in zip(permuted_picture, observation.coordinates):
         constrain(check_shape(shape1, shape2))
     # permuted topology
@@ -238,7 +242,8 @@ def make_new_input(LA,LD,LP):
     else:
         ix,iy = None, None
     ss = real_numbers(LS)
-    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": ss, "positions": ps,
+    zs = booleans(LS)
+    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": zip(ss,zs), "positions": ps,
                        "initial-dx": ix, "initial-dy": iy})
         
 
@@ -253,9 +258,13 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     clear_solver()
     define_grammar(LP, LD, LA)
        
-    draw_picture,mdl,pr = program_generator(picture_size)
-    containment,containment_length,containment_printer,containment_data = topology_generator(LK,CONTAINS)
-    borders,borders_length,borders_printer,borders_data = topology_generator(LB,BORDERS)
+    draw_picture,mdl,pr = imperative_generator('DRAW-ACTION',picture_size,initial_production = 'INITIAL-DRAW')
+    containment,containment_length,containment_printer = imperative_generator('TOPOLOGY-CONTAINS',LK)
+    containment = containment(None,None)
+    containment_data = summation([ If(t[0],0,logarithm(2)) for t in containment ])
+    borders,borders_length,borders_printer = imperative_generator('TOPOLOGY-BORDERS',LB)
+    borders = borders(None,None)
+    borders_data = summation([ If(t[0],0,logarithm(2)) for t in borders ])
     dataMDL = len(observations)*(10.0*(LA+LD+2*LP+LI)+100.0*LS+containment_data+borders_data)
     mdl = summation([mdl,dataMDL,containment_length,borders_length])
     
@@ -264,7 +273,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     inputs = [ make_new_input(LA,LD,LP) for n in range(len(observations)) ]
 
     for i in range(len(observations)):
-        picture = draw_picture(inputs[i])
+        picture = draw_picture(*inputs[i])
         check_picture(Observation(picture,containment,borders),observations[i])
     
     # If we have a solution so far, ensure that we beat it
@@ -296,7 +305,8 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
                     program = program + ("a[%i] = %i; " % (index, a))
                 program += "\n\t"
             for sh in range(LS):
-                program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh])))
+                program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh][0])))
+                program = program + ("s_small[%s] = %r; " % (str(sh), extract_bool(m,inputs[n][1]['shapes'][sh][1])))
             program = program + "\n"
         return program
     print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
@@ -311,6 +321,14 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
 
 
 
+# Failure to synthesize any program
+if len(solutions) == 0:
+    print "Failure to synthesize"
+    print "Test data log likelihoods:"
+    for t in test_observations:
+        print "-infinity"
+    sys.exit(0)
+
 (m,p,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
 print "="*40
 print "Best solution: %f bits (D,A,P = %i,%i,%i)" % (m,LD,LA,LP)
@@ -323,14 +341,14 @@ if test_observations:
     print "Test data log likelihoods:"
     for test in test_observations:
         if (len(test.coordinates) != picture_size
-            or max([ shape[2] for shape in test.coordinates ]) > LS
+            or max([ shape.name for shape in test.coordinates ]) > LS
             or len(test.containment) > LK
             or len(test.bordering) > LB):
             print "-infinity"
             continue
         push_solver()
         inputs = make_new_input(LA,LD,LP)
-        outputs = gen(inputs)
+        outputs = gen(*inputs)
         check_picture(Observation(outputs,
                                   k,
                                   b),

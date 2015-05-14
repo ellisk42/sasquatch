@@ -235,7 +235,7 @@ maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
 # for each tense, a different rule
 programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
 
-# Push a frame to hold all of the test data
+# Push a frame to hold all of the training data
 push_solver()
 
 inputs = [ {'lemma': morpheme() }
@@ -254,19 +254,23 @@ for t in range(TENSES):
 #                                  0.0,
 #                                  -logarithm(epsilon)+logarithm(44)*len(observations[n][t].split(' '))))
 
+flat_stems = [ v['lemma'] for v in inputs ]
+stem_length = summation([logarithm(44)*s[0] for s in flat_stems ])
+
 def printer(m):
     
     model = ""
     for t in range(TENSES):
         model += "Tense %i: %s\n" % (t,programs[t][2](m))
+        model += "\tProgram description length: %f\n" % extract_real(m,programs[t][1])
     model += "\n"
     for j in range(N):
         model += "lemma = %s\n" % extract_string(m,inputs[j]['lemma'])
+    print "Stem length: %f\n" % extract_real(m,stem_length)
     return model
 
 
-flat_stems = [ v['lemma'] for v in inputs ]
-total = summation(noise_penalties + [p[1] for p in programs ] + [logarithm(44)*s[0] for s in flat_stems ])
+total = summation(noise_penalties + [p[1] for p in programs ] + [100*stem_length])
 
 
 if compressionLoop(printer,total)[0] == 'FAIL':

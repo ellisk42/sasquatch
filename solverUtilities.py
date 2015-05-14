@@ -3,14 +3,10 @@ import math
 import time
 import os
 
-OPTIMIZE = False # optimize sucks!
-if OPTIMIZE:
-    sys.path.append('./z3-opt/build')
-else:
-    sys.path.append('./Z3/build')
+sys.path.append('./Z3/build')
 from z3 import *
 
-slv = Solver() if not OPTIMIZE else Optimize()
+slv = Solver()
 
 recent_model = None
 def get_recent_model():
@@ -67,7 +63,8 @@ def permutation_indicators(K):
         pick_exactly_one([indicators[i][c] for i in range(K) ])
     return indicators
             
-    
+def booleans(K):
+    return [ boolean() for i in range(K) ]
 def real_numbers(K):
     return [ real() for i in range(0,K) ]
 def integer_numbers(K):
@@ -125,42 +122,32 @@ def compressionLoop(pr,mdl,verbose = True,timeout = None):
     if timeout:
         slv.set("timeout",timeout*1000)
     global_start_time = time.time()
-    if OPTIMIZE:
-        slv.minimize(mdl)
-        k = slv.check()
-        if str(k) != 'sat': return 'FAIL', None
-        m = slv.model()
-        d = (time.time() - global_start_time)
-        if verbose:
-            print "Found model in %f sec" % d
-            print(pr(m))
-    else:
-        solver_time = 0
-        m = None
-        while True:
-            start_time = time.time()
-            if verbose: print "Checking model using Z3..."
-            if str(slv.check()) == 'sat':
-                m = slv.model()
-                recent_model = m
-            else:
-                break
-            d = (time.time() - start_time)
-            solver_time += d
-            up = extract_real(m,mdl)
-            slv.add(mdl < up)
-            if verbose: 
-                print "Found model in %f sec" % d
-                print(pr(m))
-                print "MDL", up
-                print "Trying for a better one...\n"
+    solver_time = 0
+    m = None
+    while True:
+        start_time = time.time()
+        if verbose: print "Checking model using Z3..."
+        if str(slv.check()) == 'sat':
+            m = slv.model()
+            recent_model = m
+        else:
+            break
         d = (time.time() - start_time)
         solver_time += d
-        if verbose:
-            print "Proved unsatisfiable in %f sec" % d
-            print "Total solver time: %f"  % solver_time
-        if m == None:
-            return 'FAIL',m
+        up = extract_real(m,mdl)
+        slv.add(mdl < up)
+        if verbose: 
+            print "Found model in %f sec" % d
+            print(pr(m))
+            print "MDL", up
+            print "Trying for a better one...\n"
+    d = (time.time() - start_time)
+    solver_time += d
+    if verbose:
+        print "Proved unsatisfiable in %f sec" % d
+        print "Total solver time: %f"  % solver_time
+    if m == None:
+        return 'FAIL',m
     # compute structural assertions
     structure_constraints = []
     for v in structural_variables:
@@ -264,7 +251,6 @@ def generator(d, production):
     def printer(m):
         for i in range(numberRules):
             flag = indicators[i]
-#            print "Trying", str(flag)
             if yes(m[flag]):
                 # using the ith rule
                 chosen_printer = rules[i][1]
@@ -289,7 +275,7 @@ def generator(d, production):
 def clear_solver():
     global slv, rule_bank, structural_variables
     structural_variables = []
-    slv = Solver() if not OPTIMIZE else Optimize()
+    slv = Solver()
     productions = rule_bank.keys()
     for p in productions:
         if isinstance(rule_bank[p],list):
@@ -336,56 +322,28 @@ def enum_rule(production, options):
     for j in range(len(options)):
         make_index(j)
 
+def imperative_generator(production, d, initial_production = None):
+    if d == 0:
+        return (lambda state,i: []),0,(lambda m: "")
+    p = initial_production if initial_production else production
+    first_evaluate, first_length, first_print = generator(1,p)
+    
+    rest_evaluate, rest_length, rest_print = imperative_generator(production, d-1)
+        
+    def evaluate(state,i):
+        first_output, first_state = first_evaluate((state,i))
+        rest_output = rest_evaluate(first_state,i)
+        return [first_output]+rest_output
+    def printer(m):
+        return first_print(m) + "\n" + rest_print(m)
+    
+    mdl = real()
+    constrain(mdl == first_length + rest_length)
+    
+    return evaluate,mdl,printer
 
-
-# hacking parallelism
-# so many forks, it's a dinner party!!!
-def dinner_party(tasks, callback, cores = 10):
-    descriptors = {} # for each running process, a file descriptor
-    outputs = 0 # accumulate the number of outputs
-    number_tasks = len(tasks)
-
-    while outputs < number_tasks:
-        while len(tasks) > 0 and len(descriptors) < cores:
-            # launch another task
-            task = tasks[0]
-            tasks = tasks[1:]
-            
-            r,w = os.pipe()
-            p = os.fork()
-            if p == 0:
-                sys.stdout = os.fdopen(w, "w")
-                print task()
-                sys.exit()
-            else:
-                descriptors[p] = r
-        # slurp some more dinner!!
-        if len(descriptors) > 0:
-            p,s = os.waitpid(-1,0)
-            o = os.read(descriptors[p],200000)
-            outputs += 1
-            del descriptors[p]
-            callback(o)
-
-    return outputs
-
-parallelBest = ""
-parallelLoss = 0
-def parallelCompression(pr,mdl,concrete,cores = 10):
-    global parallelBest, parallelLoss
-    parallelBest = ""
-    parallelLoss = 0
-    def make_task(k):
-        def task():
-            constrain(And(*k))
-            return compressionLoop(pr,mdl,verbose = False)
-        return task
-    def continuation(solution):
-        global parallelBest, parallelLoss
-        loss = float(solution.split("\n")[-2])
-        print "LOSS: %f, \n%s\n\n" % (loss,solution)
-        if parallelBest == "" or loss < parallelLoss:
-            parallelLoss = loss
-            parallelBest = solution
-    dinner_party([make_task(k) for k in concrete ],continuation,cores)
-    print "BEST:\n%s" % parallelBest
+def distribution_mode(d):
+    k = {}
+    for x in d:
+        k[x] = k.get(x,0) + 1
+    return max([ (y,x) for x,y in k.items() ])[1]

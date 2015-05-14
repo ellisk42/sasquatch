@@ -30,22 +30,25 @@ def classifier_accuracies(P,N,S):
     failures = find_bad_parses()
     positives = [ "pictures/%i_1_%i" % (P,x) for x in range(100) ]
     negatives = [ "pictures/%i_0_%i" % (P,x) for x in range(100) ]
-    positives = [p for p in positives if not (p in failures) ]
-    negatives = [p for p in negatives if not (p in failures) ]
     total_clean = len(positives) + len(negatives)
-    test = ' '.join(positives + negatives)
     
     accuracies = []
     for s in range(S):
         p = random.sample(positives,N)
         n = random.sample(negatives,N)
+        training = p+n
+        
+        positives_test = [ h for h in positives if (not (h in training)) ]
+        negatives_test = [ h for h in negatives if (not (h in training)) ]
+        test = ' '.join(positives_test + negatives_test)        
         
         positive_likelihoods = run_output(' '.join(p),test)
         negative_likelihoods = run_output(' '.join(n),test)    
         
         correct = 0
-        for j in range(total_clean):
-            positive_example = j < len(positives)
+        test_size = len(positives_test) + len(negatives_test)
+        for j in range(test_size):
+            positive_example = j < len(positives_test)
             if positive_likelihoods[j] == negative_likelihoods[j]:
                 correct += 0.5
             elif positive_likelihoods[j] > negative_likelihoods[j]:
@@ -54,12 +57,10 @@ def classifier_accuracies(P,N,S):
             else:
                 if not positive_example:
                     correct += 1
-        print p,n, (correct/float(total_clean))
+        print p,n, (correct/float(test_size))
 
-        accuracies.append(correct/float(total_clean))
-    #len([a for a in accuracies if a > classified_threshold ])
+        accuracies.append(correct/float(test_size))
     accuracy = sum(accuracies)/float(S)
-    #    error = math.sqrt(accuracy*(1-accuracy)/float(S))
     error = variance(accuracies)
     return accuracy,math.sqrt(error/float(S))
 
