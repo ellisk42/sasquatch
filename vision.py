@@ -4,8 +4,9 @@ import sys
 import time
 import re
 
+
 translational_noise = 3
-solver_timeout = 3
+solver_timeout = 30
 
 CONTAINS = True
 BORDERS = False
