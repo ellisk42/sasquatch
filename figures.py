@@ -2,6 +2,7 @@ from pylab import *
 import math
 import numpy as np
 import numpy.numarray as na
+from accuracies import *
 
 interactive(True)
 labels = [str(i) for i in range(1,24) ]
@@ -41,13 +42,6 @@ axis.set_ylim(0,1)
 axis.set_xticks(index+w)
 axis.set_xticklabels(labels)
 axis.legend((people[0],machines[0],boosting[0]),('Human (about 3 examples, varies)','Program induction (3 examples)','Boosting (10000 examples)'),loc = 3)
-#axis.bar(xl+w,program_success,yerr = program_error,width = w,color = 'r')
-#yticks([float(y)/10.0 for y in range(11) ])
-#xticks(index + w,labels)
-#axis.set_xlim(0,xl[-1]+w*2)
-#axis.set_ylim(0,1)
-#gca().get_xaxis().tick_bottom()
-#gca().get_yaxis().tick_left()
 
 xlabel('SVRT Problem')
 ylabel('Accuracy')
@@ -61,3 +55,6 @@ savefig('test.png')
 accuracy_matrix = np.array([human_success,program_success,boost_success])
 covariance = np.corrcoef(accuracy_matrix)
 print covariance
+
+
+
