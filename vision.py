@@ -314,8 +314,8 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
                     program = program + ("a[%i] = %i; " % (index, a))
                 program += "\n\t"
             for sh in range(LS):
-                program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh][0])))
-                program = program + ("s_scale[%s] = %r; " % (str(sh), extract_bool(m,inputs[n][1]['shapes'][sh][1])))
+                program = program + ("s[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][0])))
+                program = program + ("s_scale[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][1])))
             if LZ > 0:
                 program += "\n\tz = %f" % extract_real(m,inputs[n][1]['scale'])
             program = program + "\n"
@@ -335,9 +335,12 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
 # Failure to synthesize any program
 if len(solutions) == 0:
     print "Failure to synthesize"
-    print "Test data log likelihoods:"
-    for t in test_observations:
-        print "-infinity"
+    if test_observations:
+        print "Test data log likelihoods:"
+        for t in test_observations:
+            print "-infinity"
+    else:
+        print "infinity"
     sys.exit(0)
 
 (m,p,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
@@ -369,4 +372,6 @@ if test_observations:
         else:
             print "-infinity"
         pop_solver()
+else:
+    print m
         
