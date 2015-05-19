@@ -23,18 +23,16 @@ Weird thing: the solver chokes if I don't represent shape constants as real numb
 '''
 
 class Shape():
-    def __init__(self,x,y,name,small):
+    def __init__(self,x,y,name,scale):
         self.x = x
         self.y = y
         self.name = name
-        self.small = small
+        self.scale = scale
     def convert_to_tuple(self):
-        return (self.x,self.y,self.name,self.small)
+        return (self.x,self.y,self.name,self.scale)
     def __str__(self):
-        if self.small:
-            return "small(%i)@(%i,%i)" % (self.name, self.x, self.y)
-        else:
-            return "%i@(%i,%i)" % (self.name, self.x, self.y)
+        return "%i@(%i,%i)x%f" % (self.name, self.x, self.y, self.scale)
+        
 
 class Observation:
     def __init__(self,c,k,b):
@@ -86,6 +84,12 @@ LS = int(max([ shape.name for o in observations
                for shape in o.coordinates ]))
 LK = max([ len(o.containment) for o in observations])
 LB = max([ len(o.bordering) for o in observations])
+
+# determine number of latent scaling variables
+LZ = 0
+if all([ any([ s.scale < 1.0 for s in o.coordinates ]) for o in observations ]):
+    LZ = 1
+
 
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
@@ -144,22 +148,26 @@ def define_grammar(LP,LD,LA):
          lambda (t,i): (i['positions'][0][0],i['positions'][0][1],
                         i['initial-dx'] if i['initial-dx'] else 1.0,
                         i['initial-dy'] if i['initial-dy'] else 0.0))
-    rule('INITIAL-SHAPE',['SHAPE-SIZE'],
-         lambda m,z: '(draw s[0]%s)' % z,
-         lambda (t,i),z: (i['shapes'][0][0],Or(z,i['shapes'][0][1])))
+    rule('INITIAL-SHAPE',[],
+         lambda m: '(draw s[0])',
+         lambda (t,i): (i['shapes'][0][0],i['shapes'][0][1]))
     
     indexed_rule('SHAPE-INDEX', 's', LS,
                  lambda (t,i): i['shapes'])
     
-    rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
-         lambda m,i,z: '(draw %s%s)' % (i,z),
-         lambda i,s,z: (s[0],Or(z,s[1])))
-    rule('SHAPE-SIZE',[],
-         lambda m: '',
-         lambda i: False)
-    rule('SHAPE-SIZE',[],
-         lambda m: ' :small',
-         lambda i: True)
+    rule('SHAPE',['SHAPE-INDEX'],
+         lambda m,i: '(draw %s)' % i,
+         lambda i,s: (s[0],s[1]))
+    if LZ > 0:
+        rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
+             lambda m,i,z: '(draw %s :scale z)' % i,
+             lambda i,s,z: (s[0],z*s[1]))
+        rule('SHAPE-SIZE',[],
+             lambda m: '',
+             lambda (t,i): i['scale'])
+        rule('INITIAL-SHAPE',['SHAPE-SIZE'],
+             lambda m,z: '(draw s[0] :scale z)',
+             lambda (t,i),z: (i['shapes'][0][0],i['shapes'][0][1]*z))
     
     rule('DRAW-ACTION',['LOCATE','SHAPE'],
          lambda m,l,s: l + "\n" + s,
@@ -200,7 +208,7 @@ def check_shape(shape, shapep):
     return [shape.x <= shapep.x + e, shape.x >= shapep.x - e,
             shape.y <= shapep.y + e, shape.y >= shapep.y - e,
             shape.name == shapep.name,
-            shape.small == shapep.small]
+            shape.scale == shapep.scale]
 
 # adds a constraint saying that the picture has to equal some permutation of the observation
 def check_picture(picture,observation):
@@ -234,6 +242,7 @@ def make_new_input(LA,LD,LP):
     ps = [ (real(), real()) for j in range(LP) ]
     ds = real_numbers(LD)
     ts = [ (real(), real()) for j in range(LA) ]
+    z = None if LZ == 0 else real()
     for tx,ty in ts:
         constrain_angle(tx,ty)
     if LD > 0:
@@ -242,8 +251,8 @@ def make_new_input(LA,LD,LP):
     else:
         ix,iy = None, None
     ss = real_numbers(LS)
-    zs = booleans(LS)
-    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": zip(ss,zs), "positions": ps,
+    zs = real_numbers(LS)
+    return ((0,0,1,0),{"distances": ds, "angles": ts, "shapes": zip(ss,zs), "positions": ps, "scale": z,
                        "initial-dx": ix, "initial-dy": iy})
         
 
@@ -306,7 +315,9 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
                 program += "\n\t"
             for sh in range(LS):
                 program = program + ("s[%s] = %f; " % (str(sh), extract_real(m,inputs[n][1]['shapes'][sh][0])))
-                program = program + ("s_small[%s] = %r; " % (str(sh), extract_bool(m,inputs[n][1]['shapes'][sh][1])))
+                program = program + ("s_scale[%s] = %r; " % (str(sh), extract_bool(m,inputs[n][1]['shapes'][sh][1])))
+            if LZ > 0:
+                program += "\n\tz = %f" % extract_real(m,inputs[n][1]['scale'])
             program = program + "\n"
         return program
     print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)

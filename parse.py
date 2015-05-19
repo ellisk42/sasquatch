@@ -189,7 +189,7 @@ def compute_qualitative(shapes):
 
 def analyze(filename):
     i = scipy.misc.imread(filename,1)
-    i = i.astype(np.int32) # [ [ int(x) for x in r ] for r in i]
+    i = i.astype(np.int32)
     shapes = connected_components(i)
 
     # merger artifacts with what they came from
@@ -223,11 +223,11 @@ def analyze(filename):
                 if s.rescaled_shape(l):
                     s.name = l.name
                     if s.mass < l.mass:
-                        s.scale = s.mass/l.mass
+                        s.scale = float(s.mass)/float(l.mass)
                     else:
                         for lp in labeled:
                             if lp.name == s.name:
-                                lp.scale = lp.mass/s.mass
+                                lp.scale = float(lp.mass)/float(s.mass)
                     break
         if not s.name:
             s.name = next_label
@@ -236,9 +236,8 @@ def analyze(filename):
     # build output string
     os = []
     for s in shapes:
-        small = s.scale < 1.0
         name = str(s.name)
-        os.append("Shape(" + str(s.x) + ", " + str(s.y) + ", " + str(name)+", "+str(small)+")")
+        os.append("Shape(" + str(s.x) + ", " + str(s.y) + ", " + str(name)+", "+str(s.scale)+")")
     os = ','.join(os)
     os = os + "\n"
     for s in xrange(0,ns):
