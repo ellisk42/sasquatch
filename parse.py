@@ -280,7 +280,10 @@ sys.setrecursionlimit(128*128*2)
 
 jobs = []
 
-for argument in sys.argv[1:]:
+arguments = sys.argv[1:]
+if len(arguments) == 0:
+    arguments = [i for i in range(1,23) ]
+for argument in arguments:
     if argument.isdigit():
         argument = 'svrt/results_problem_%s' % argument
     if os.path.isdir(argument):
