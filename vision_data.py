@@ -14,6 +14,6 @@ def task(t):
 
 T = 23
 
-a = parallel_map(task, list(range(1,T+1)))
+a = parallel_map(task, list(range(1,T+1)), cores = T)
 a = [eval(x) for x in a ]
 print a

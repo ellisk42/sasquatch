@@ -282,7 +282,7 @@ jobs = []
 
 arguments = sys.argv[1:]
 if len(arguments) == 0:
-    arguments = [i for i in range(1,23) ]
+    arguments = [str(i) for i in range(1,24) ]
 for argument in arguments:
     if argument.isdigit():
         argument = 'svrt/results_problem_%s' % argument

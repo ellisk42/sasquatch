@@ -39,8 +39,8 @@ def make_dinner_task(f,x):
         return f(x)
     return k
 
-def parallel_map(f,l):
-    return dinner_party([make_dinner_task(f,l[i]) for i in range(len(l)) ])
+def parallel_map(f,l,cores = 10):
+    return dinner_party([make_dinner_task(f,l[i]) for i in range(len(l)) ],cores = cores)
 
 
 
