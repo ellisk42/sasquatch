@@ -5,6 +5,7 @@ import math
 from find_bad_parses import *
 
 
+VERBOSE = False
 # need to have at least this accuracy to count as solving the task
 classified_threshold = 0.9
 
@@ -21,7 +22,8 @@ def run_output(training,test):
         if reading_likelihoods:
             likelihoods.append(float(l))
         else:
-            print l
+            if VERBOSE:
+                print l
         if "Test data log likelihoods" in l:
             reading_likelihoods = True
     return likelihoods
@@ -57,15 +59,20 @@ def classifier_accuracies(P,N,S):
             else:
                 if not positive_example:
                     correct += 1
-        print p,n, (correct/float(test_size))
+        if VERBOSE:
+            print p,n, (correct/float(test_size))
 
         accuracies.append(correct/float(test_size))
     accuracy = sum(accuracies)/float(S)
     error = variance(accuracies)
-    return accuracy,math.sqrt(error/float(S))
+    return accuracies
+#    return accuracy,math.sqrt(error/float(S))
 
 if __name__ == "__main__":
+    VERBOSE = True
     P = int(sys.argv[1]) # which data set are we using
     N = int(sys.argv[2]) # number of positive and negative training examples
     S = int(sys.argv[3]) # number of samples
     print classifier_accuracies(P,N,S)
+
+    

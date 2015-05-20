@@ -33,6 +33,7 @@ for k in ipa2char:
 Phoneme, phonemes = EnumSort('Phoneme', tuple(char2ipa.keys()))
 z3char = {}
 for p in phonemes:
+    assert not str(p) in z3char
     z3char[str(p)] = p
 
 Place, places = EnumSort('Place', ('NoPlace','LABIAL','CORONAL','DORSAL'))
