@@ -1048,6 +1048,6 @@ albright = ["b a j z",
             "s t I n",
             "s t I p"]
 
-unsupervised = ["n i d @ d","w @ r k t","p l e d","w e t @ d","\\ae d @ d","E n d @ d","\\ae k t @ d","p a b d"]
+unsupervised = ["n i d @ d","w @ r k t","p l e d","w e t @ d","\\ae d @ d","E n d @ d","\\ae k t @ d","p a p t"]
 
 #unsupervised = [x[1] for x in minimal_pairs ] + ["n i d @ d","p l e d","\\ae k t @ d"]*2

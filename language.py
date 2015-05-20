@@ -230,6 +230,7 @@ latexTable(observations)
 
 # only keep the relevant tenses
 observations = [ [observation[t] for t in tenses ] for observation in observations ]
+observations = [[o] for o in unsupervised ]
 N = len(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
@@ -280,7 +281,7 @@ if compressionLoop(printer,total)[0] == 'FAIL':
 else:
     solver = get_solver()
     
-    test_data = verbs
+    test_data = [] #verbs
     successes = 0
     likelihood = 0.0
     for test in test_data:

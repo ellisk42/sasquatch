@@ -24,6 +24,8 @@ tiny_threshold = 50
 # how different two things can be and still count is rescaled versions
 rescale_threshold = 3.06
 
+# how different two things can be and still count as rotations
+rotate_threshold = 4
 
 class Shape():
     def __init__(self,mask):
@@ -36,6 +38,7 @@ class Shape():
         self.merge_borders = []
         self.name = None
         self.scale = 1.0
+        self.orientation = 0
         
         self.outline = mask_outline(mask)
         
@@ -49,13 +52,17 @@ class Shape():
             return other.rescaled_shape(self)
         f = math.sqrt(float(self.mass) / float(other.mass))
         o = scale_mask(other.centered,f)
-        #        view(self.centered)
-        #        view(scale_mask(other.centered,f))
         differences = min([ np.sum(np.logical_xor(self.centered,n))
                             for n in neighbor_matrices(o) ])
-        #        view(d)
         r = float(differences)/math.sqrt(self.mass)
         return r < rescale_threshold
+    def rotated_shape(self,other):
+        if self.mass > other.mass:
+            return other.rotated_shape(self)
+        f = math.sqrt(float(self.mass) / float(other.mass))
+        o = scale_mask(other.centered,f)
+        return rotation_equals(self.centered,o,
+                               threshold = rotate_threshold)
     def contains_other(self,other):
         return mask_subset(other.mask,self.mask)
     def touches(self,other):
@@ -216,12 +223,14 @@ def analyze(filename):
             if l.same_shape(s):
                 s.name = l.name
                 s.scale = l.scale
+                s.orientation = l.orientation
                 break
         if not s.name:
             # see if this is a rescaling of a different shape
             for l in labeled:
                 if s.rescaled_shape(l):
                     s.name = l.name
+                    s.orientation = l.orientation
                     if s.mass < l.mass:
                         s.scale = float(s.mass)/float(l.mass)
                     else:
@@ -230,14 +239,30 @@ def analyze(filename):
                                 lp.scale = float(lp.mass)/float(s.mass)
                     break
         if not s.name:
+            # see if this is a rotation of a different shape
+            for l in labeled:
+                r = s.rotated_shape(l)
+                if r == None: continue
+                print "rotated shape"
+                s.name = l.name
+                if s.mass < l.mass:
+                    s.orientation = r
+                    s.scale = float(s.mass)/float(l.mass)
+                else:
+                    r = 360-r
+                    for lp in labeled:
+                        if  lp.name == s.name:
+                            lp.orientation = r
+                            lp.scale = float(lp.mass)/float(s.mass)
+                break
+        if not s.name:
             s.name = next_label
             next_label += 1
         labeled.append(s)
     # build output string
     os = []
     for s in shapes:
-        name = str(s.name)
-        os.append("Shape(" + str(s.x) + ", " + str(s.y) + ", " + str(name)+", "+str(s.scale)+")")
+        os.append("Shape(%i,%i,%i,%f,%i)" % (s.x,s.y,s.name,s.scale,s.orientation))
     os = ','.join(os)
     os = os + "\n"
     for s in xrange(0,ns):
@@ -279,3 +304,4 @@ for j in jobs:
 
 
  
+
