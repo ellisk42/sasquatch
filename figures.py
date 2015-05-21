@@ -36,7 +36,7 @@ boosting = axis.bar(index+w+w,
                     boost_success, #yerr = boost_error,
                     width = w,
                     color = 'g',
-                    label = 'Boosting')
+                    label = 'Baseline')
 
 axis.set_xlim(-w,len(index)+w)
 axis.set_ylim(0,1)
@@ -53,39 +53,37 @@ show()
 
 savefig('comparison.png')
 
-accuracy_matrix = np.array([human_success,program_success,boost_success])
+feature_success = [np.average(f) for f in feature_accuracies ]
+accuracy_matrix = np.array([human_success,program_success,feature_success,boost_success])
 covariance = np.corrcoef(accuracy_matrix)
 print covariance
 
 
+def scatter_frequencies(observations,color):
+    frequencies = {}
+    for p in range(23):
+        h = human_success[p]
+        if isinstance(observations[p],list):
+            for a in observations[p]:
+                frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
+        else:
+            a = observations[p]
+            frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
+    x = [ h for ((h,a),f) in frequencies.iteritems() ]
+    y = [ a for ((h,a),f) in frequencies.iteritems() ]
+    area = [ f*10 for ((h,a),f) in frequencies.iteritems() ]
+    return scatter(x,y,s = area,alpha = 0.5,color = color)
 
 figure()
-frequencies = {}
-boost_frequencies = {}
-for p in range(23):
-    h = human_success[p]
-    b = boost_success[p]
-    boost_frequencies[(h,b)] = 1 + boost_frequencies.get((h,b),0)
-    for s in range(10):
-        a = program_accuracies[p][s]
-        frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
 
-x = [ h for ((h,a),f) in frequencies.iteritems() ]
-y = [ a for ((h,a),f) in frequencies.iteritems() ]
-area = [ f*10 for ((h,a),f) in frequencies.iteritems() ]
-
-
-bx = [ h for ((h,a),f) in boost_frequencies.iteritems() ]
-by = [ a for ((h,a),f) in boost_frequencies.iteritems() ]
-barea = [ f*10 for ((h,a),f) in boost_frequencies.iteritems() ]
-
-pi = scatter(x,y,s = area, alpha = 0.5, color = 'r')
-b = scatter(bx,by,s = barea, alpha = 0.5, color = 'b')
+pi = scatter_frequencies(program_accuracies,'r')
+b = scatter_frequencies(boost_success,'b')
+f = scatter_frequencies(feature_accuracies,'g')
 xlabel('Human accuracy')
 ylabel('Machine accuracy')
 
 
-legend((pi,b),('Program induction (3 examples)', 'Boosting (10000 examples)'),loc = 'lower right')
+legend((pi,f,b),('Program induction (3 examples)', 'Features (3 examples)', 'Boosting (10000 examples)'),loc = 'lower right')
 
 show()
 savefig('scatter.png')
