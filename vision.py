@@ -94,7 +94,7 @@ if all([ any([ s.scale < 1.0 for s in o.coordinates ]) for o in observations ]):
 LR = 0
 if all([ any([ s.orientation > 0.0 for s in o.coordinates ]) for o in observations ]):
     LR = 1
-
+LZ = max(LZ,LR)
 
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
