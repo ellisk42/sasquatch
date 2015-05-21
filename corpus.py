@@ -1051,3 +1051,6 @@ albright = ["b a j z",
 unsupervised = ["n i d @ d","w @ r k t","p l e d","w e t @ d","\\ae d @ d","E n d @ d","\\ae k t @ d","p a p t"]
 
 #unsupervised = [x[1] for x in minimal_pairs ] + ["n i d @ d","p l e d","\\ae k t @ d"]*2
+
+
+aboriginal = [s+' '+s for s in albright ]

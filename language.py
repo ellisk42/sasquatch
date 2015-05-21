@@ -4,7 +4,7 @@ import math
 import random
 import sys
 
-from corpus import verbs, latexTable, sample_corpus, minimal_pairs, unsupervised
+from corpus import *
 
 # exception probability
 epsilon = 0.1
@@ -213,7 +213,13 @@ rule('GUARD', ['VOICE-GUARD','MANNER-GUARD','PLACE-GUARD','SIBILANT-GUARD'],
 rule('STEM', [],
      lambda m: 'lemma',
      lambda i: i['lemma'])
-rule('RETURN',['STEM','STRING'],
+rule('MORPHEME',['STRING'],
+     lambda m,s: s,
+     lambda i,s: s)
+rule('MORPHEME',['STEM'],
+     lambda m,s: s,
+     lambda i,s: s)
+rule('RETURN',['MORPHEME','MORPHEME'],
      lambda m, stem, suffix: stem if suffix == '\\textipa{}' else "(append %s %s)" % (stem,suffix),
      lambda i, p, q: concatenate(p,q))
 rule('CONDITIONAL',['GUARD','RETURN','CONDITIONAL'],
@@ -231,7 +237,8 @@ latexTable(observations)
 
 # only keep the relevant tenses
 observations = [ [observation[t] for t in tenses ] for observation in observations ]
-observations = [[o] for o in unsupervised ]
+#observations = [[o] for o in unsupervised ]
+observations = [[o] for o in aboriginal ]
 N = len(observations)
 
 maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
@@ -282,7 +289,7 @@ if compressionLoop(printer,total)[0] == 'FAIL':
 else:
     solver = get_solver()
     
-    test_data = [] #verbs
+    test_data = verbs
     successes = 0
     likelihood = 0.0
     for test in test_data:
