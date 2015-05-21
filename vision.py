@@ -359,6 +359,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
 # Failure to synthesize any program
 if len(solutions) == 0:
     print "Failure to synthesize"
+    print "Marginal likelihood: infinity"
     if test_observations:
         print "Test data log likelihoods:"
         for t in test_observations:
@@ -373,7 +374,7 @@ print "="*40
 print "Best solution: %f bits (D,A,P = %i,%i,%i)" % (m,LD,LA,LP)
 print "="*40
 
-print p
+print "Marginal likelihood: %f" % m
 
 set_solver(solver)
 if test_observations:
