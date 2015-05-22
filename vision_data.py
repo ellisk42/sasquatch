@@ -8,12 +8,16 @@ averages = []
 errors = []
 
 def task(t):
-    return Bayesian_classifier(t,N,S)
+    return Bayesian_classifier(t,N,1)
     
 
 
 T = 23
 
-a = parallel_map(task, list(range(1,T+1)), cores = T)
+arguments = [[t]*S for t in range(1,T+1) ]
+arguments = [i for l in arguments for i in l  ]
+
+a = parallel_map(task, arguments, cores = T)
 a = [eval(x) for x in a ]
+a = np.array(a).reshape((T,S)).tolist()
 print a

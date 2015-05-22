@@ -31,7 +31,9 @@ class Shape():
     def convert_to_tuple(self):
         return (self.x,self.y,self.name,self.scale,self.orientation)
     def __str__(self):
-        return "%i@(%i,%i)x%f/%ideg" % (self.name, self.x, self.y, self.scale, self.orientation)
+        if self.scale == 1.0:
+            return "%i@(%i,%i)" % (self.name,self.x,self.y)
+        return "%i@(%i,%i)x%f" % (self.name, self.x, self.y, self.scale)
         
 
 class Observation:
@@ -66,8 +68,8 @@ for picture_file in sys.argv[1:]:
                 borderings.append((int(b.group(1)),int(b.group(2))))
         if not reading_test_data:
             print "PICTURE:\n\t", '\t'.join([ str(s) for s in shapes ])
-            print '\tBORDERS: %s' % str(borderings)
-            print '\tCONTAINS: %s' % str(containment)
+            if len(borderings) > 0: print '\tBORDERS: %s' % str(borderings)
+            if len(containment) > 0: print '\tCONTAINS: %s' % str(containment)
         composite = Observation([ss for ss in shapes ],
                                 containment, borderings)
         if not reading_test_data:
