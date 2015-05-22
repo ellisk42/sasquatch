@@ -8,11 +8,6 @@ import re
 translational_noise = 3
 solver_timeout = 30
 
-CONTAINS = True
-BORDERS = False
-
-NORMALSHAPE = True
-SMALLSHAPE = False
 
 LK = 0 # latent containments
 LB = 0 # latent borders

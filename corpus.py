@@ -1054,3 +1054,19 @@ unsupervised = ["n i d @ d","w @ r k t","p l e d","w e t @ d","\\ae d @ d","E n 
 
 
 aboriginal = [s+' '+s for s in albright ]
+
+
+def sparse_lexicon(N):
+    observations = []
+    while len(observations) < N:
+        w = random.sample(verbs,1)[0]
+        t = random.randint(0,5)
+        o = (w[0],t,w[t])
+        if not o in observations:
+            observations.append(o)
+    return observations
+
+
+if __name__ == "__main__":
+    for (s,t,o) in sorted(sparse_lexicon(30)):
+        print "[%s]\t%i\t[%s]" % (s,t,o)
