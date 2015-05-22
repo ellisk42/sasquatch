@@ -9,7 +9,8 @@ MDL_SHAPE = 1000
 MDL_REAL = 10
 
 translational_noise = 3
-solver_timeout = 30
+JITTER = 7
+solver_timeout = None#30
 
 
 LK = 0 # latent containments
@@ -148,6 +149,13 @@ def define_grammar(LP,LD,LA):
     rule('FLIP',[],
          lambda m: '(flip-X)',
          lambda ((x,y,dx,dy),i): (128-x,y,dx,dy))
+    
+    rule('LOCATE',['JITTER'],
+         lambda m,j: j,
+         lambda ((x,y,dx,dy),i), (jx,jy): (x+jx,y+jy,dx,dy))
+    rule('JITTER',[],
+         lambda m: '(jitter)',
+         lambda (s,i): (i['jitter-x'],i['jitter-y']))
 
     
     rule('INITIALIZE',[],
@@ -273,9 +281,16 @@ def make_new_input(LA,LD,LP):
     ss = real_numbers(LS)
     zs = real_numbers(LS)
     os = real_numbers(LS)
+    jx = real()
+    jy = real()
+    constrain(jx < JITTER)
+    constrain(jx > -JITTER)
+    constrain(jy < JITTER)
+    constrain(jy> -JITTER)
     return ((0,0,1,0),{"distances": ds, "angles": ts, "positions": ps, 
                        "shapes": zip(ss,zs,os), 
                        "scale": z, "orientation": o,
+                       "jitter-x": jx, "jitter-y": jy,
                        "initial-dx": ix, "initial-dy": iy})
         
 
