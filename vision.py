@@ -5,6 +5,9 @@ import time
 import re
 
 
+MDL_SHAPE = 1000
+MDL_REAL = 10
+
 translational_noise = 3
 solver_timeout = 30
 
@@ -18,9 +21,10 @@ LK = 0 # latent containments
 LB = 0 # latent borders
 LS = 0 # latent shapes
 
-'''
-Weird thing: the solver chokes if I don't represent shape constants as real numbers.
-'''
+VERBOSE = True
+if sys.argv[1] == '--quiet':
+    VERBOSE = False
+
 
 class Shape():
     def __init__(self,x,y,name,scale,orientation):
@@ -46,6 +50,7 @@ observations = []
 test_observations = []
 reading_test_data = False
 for picture_file in sys.argv[1:]:
+    if picture_file == '--quiet': continue
     if picture_file == 'test':
         reading_test_data = True
         continue
@@ -295,7 +300,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     borders,borders_length,borders_printer = imperative_generator('TOPOLOGY-BORDERS',LB)
     borders = borders(None,None)
     borders_data = summation([ If(t[0],0,logarithm(2)) for t in borders ])
-    dataMDL = len(observations)*(10.0*(LR+LZ+LA+LD+2*LP+LI)+100.0*LS+containment_data+borders_data)
+    dataMDL = len(observations)*(MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+containment_data+borders_data)
     mdl = summation([mdl,dataMDL,containment_length,borders_length])
     
     # Push a frame to hold all of the training data
@@ -313,6 +318,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     
     # modify printer so it also includes the latent dimensions
     def full_printer(m):
+        
         program = pr(m)+containment_printer(m)+borders_printer(m)+"\n"
         for n in range(len(observations)):
             program += "\nObservation %i:\n\t" % n
@@ -344,12 +350,13 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
                 program += "\n\to = %f" % extract_real(m,inputs[n][1]['orientation'])
             program = program + "\n"
         return program
-    print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout)
+    
+    if VERBOSE: print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout,verbose = VERBOSE)
     if m == None:
-        print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+        if VERBOSE: print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
     else:
-        print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+        if VERBOSE: print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
         kd = extract_real(get_recent_model(),containment_data) if LK > 0 else 0
         bd = extract_real(get_recent_model(),borders_data) if LB > 0 else 0
         solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
@@ -394,7 +401,7 @@ if test_observations:
                                   b),
                       test)
         if 'sat' == str(solver.check()):
-            print "-%f" % (10.0*(LR+LZ+LA+LD+2*LP+LI)+100.0*LS+kd+bd)
+            print "-%f" % (MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+kd+bd)
         else:
             print "-infinity"
         pop_solver()
