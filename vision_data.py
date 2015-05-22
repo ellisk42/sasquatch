@@ -8,7 +8,7 @@ averages = []
 errors = []
 
 def task(t):
-    return classifier_accuracies(t,N,S)
+    return Bayesian_classifier(t,N,S)
     
 
 

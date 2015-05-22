@@ -6,8 +6,6 @@ from find_bad_parses import *
 import re
 
 VERBOSE = False
-# need to have at least this accuracy to count as solving the task
-classified_threshold = 0.9
 
 def variance(xs):
     a = sum(xs)/float(len(xs))
@@ -17,7 +15,11 @@ def variance(xs):
 def run_output(training,test = ''):
     if isinstance(training,list):
         training = ' '.join(training)
-    o = subprocess.check_output("python vision.py %s %s %s" % (training, "test" if test else '',test), 
+    if len(test) > 0:
+        command = "python vision.py --quiet %s %s %s" % (training, "test" if test else '',test)
+    else:
+        command = "python vision.py --quiet %s" % training
+    o = subprocess.check_output(command, 
                                 shell = True)
     likelihoods = []
     reading_likelihoods = False

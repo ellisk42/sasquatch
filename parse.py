@@ -57,6 +57,7 @@ class Shape():
         r = float(differences)/math.sqrt(self.mass)
         return r < rescale_threshold
     def rotated_shape(self,other):
+        return None
         if self.mass > other.mass:
             return other.rotated_shape(self)
         f = math.sqrt(float(self.mass) / float(other.mass))
