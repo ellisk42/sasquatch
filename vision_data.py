@@ -17,7 +17,7 @@ T = 23
 
 arguments = flatten([[t]*S for t in range(1,T+1) ])
 
-a = parallel_map(task, arguments, cores = T)
+a = parallel_map(task, arguments, cores = 35)
 a = flatten([eval(x) for x in a ])
 
 a = np.array(a).reshape((T,len(a)/T)).tolist()

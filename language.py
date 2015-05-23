@@ -219,7 +219,7 @@ rule('MORPHEME',['STRING'],
 rule('MORPHEME',['STEM'],
      lambda m,s: s,
      lambda i,s: s)
-rule('RETURN',['MORPHEME','MORPHEME'],
+rule('RETURN',['STEM','STRING'],
      lambda m, stem, suffix: stem if suffix == '\\textipa{}' else "(append %s %s)" % (stem,suffix),
      lambda i, p, q: concatenate(p,q))
 rule('CONDITIONAL',['GUARD','RETURN','CONDITIONAL'],
@@ -262,7 +262,7 @@ def train_on_matrix(observations):
             model += programs[p][2](m)
             model += "\n"
         for stem in stems:
-            model += "stem[%s] = %s\n" % (stems[stem],extract_string(m,inputs[stem]['lemma']))
+            model += "stem[%s] = %s\n" % (stem,extract_string(m,inputs[stem]['lemma']))
         return model
     compressionLoop(printer,description_length)
 train_on_matrix(sparse_lexicon(N))
