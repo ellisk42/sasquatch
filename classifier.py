@@ -145,7 +145,7 @@ if __name__ == "__main__":
     P = int(sys.argv[1]) # which data set are we using
     N = int(sys.argv[2]) # number of positive and negative training examples
     S = int(sys.argv[3]) # number of samples
-    print classifier_accuracies(P,N,S)
-#    print Bayesian_classifier(P,N,S)
+#    print classifier_accuracies(P,N,S)
+    print Bayesian_classifier(P,N,S)
 
     

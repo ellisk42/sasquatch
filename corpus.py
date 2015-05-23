@@ -1,5 +1,7 @@
 import random
 
+tense_name = ['PRESENT','PAST','PROG','PERFECT','FUTURE','3rdSING']
+
 verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["h \\ae v","h \\ae d","h \\ae v I N","h a v e d","h \\ae v","h \\ae v z"],
          ["d u","d i d s t","d u I N","d @ n","d 5 T","d @ z"],
@@ -1060,10 +1062,12 @@ def sparse_lexicon(N):
     observations = []
     while len(observations) < N:
         w = random.sample(verbs,1)[0]
-        t = random.randint(0,5)
+        t = random.sample([0,1,2,5],1)[0]
         o = (w[0],t,w[t])
         if not o in observations:
             observations.append(o)
+    for (s,t,o) in sorted(observations):
+        print "[%s]\t%i\t[%s]" % (s,t,o)
     return observations
 
 

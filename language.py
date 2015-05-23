@@ -232,6 +232,42 @@ primitive_rule('STRING',
                primitive_string)
 
 
+def train_on_matrix(observations):
+    global maximum_length
+    maximum_length = max([len(w.split(' ')) for s,t,w in observations ])
+    # one program for each tense
+    programs = {}
+    # one stem for each form
+    stems = {}
+    inputs = {}
+    for (stem,t,inflected) in observations:
+        if not (t in programs):
+            programs[t] = generator(3,'CONDITIONAL')
+        if not (stem in stems):
+            stems[stem] = morpheme()
+            inputs[stem] = {'lemma': stems[stem],
+                            'last': last_one(stems[stem])}
+        cs = constrain_phonemes(programs[t][0](inputs[stem]),inflected)
+        constrain(cs)
+    flat_stems = [ inputs[i]['lemma'] for i in inputs ]
+    stem_length = [logarithm(44)*s[0] for s in flat_stems ]
+    program_length = [programs[p][1] for p in programs ]
+    description_length = summation(stem_length + program_length)
+    
+    def printer(m):
+        model = ""
+        for p in programs:
+            model += tense_name[p]
+            model += '\t'
+            model += programs[p][2](m)
+            model += "\n"
+        for stem in stems:
+            model += "stem[%s] = %s\n" % (stems[stem],extract_string(m,inputs[stem]['lemma']))
+        return model
+    compressionLoop(printer,description_length)
+train_on_matrix(sparse_lexicon(N))
+sys.exit(0)
+
 observations = sample_corpus(N,None,True)
 latexTable(observations)
 

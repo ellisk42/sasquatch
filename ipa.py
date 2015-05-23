@@ -8,6 +8,20 @@ import urllib
 import urllib2
 from bs4 import BeautifulSoup
 
+phoneme_code = {'AO': 'a', 'AA': 'a', 'IY': 'i', 'UW': 'u', 'EH': 'E', 'IH': 'I',
+                'UH': 'U', 'AH': todo}
+
+def load_pronunciations():
+    p = {}
+    with open('cmudict-0.7b','r') as f:
+        for l in f:
+            if len(l) == 0 or l[0] == ';':
+                continue
+            if '(' in l or ')' in l: continue
+            pieces = [ x for x in l.strip().split(' ') if len(x) > 0 ]
+            p[pieces[0]] = ' '.join([ phoneme_code[x] for x in pieces[1:] ])
+            return p
+
 URL= "http://upodn.com/phon.asp"
 
 def ipa(intext):
@@ -38,6 +52,7 @@ def ipa(intext):
     return out
 
 if __name__ == "__main__":
+    load_pronunciations()
     if len(sys.argv) == 1 or sys.argv[1] in ["-h", "--help"]: 
         print """ ipa.py usage: `ipa.py word1 word2 ...` returns csv 
         column 1 words in english 

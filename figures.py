@@ -54,7 +54,10 @@ show()
 savefig('comparison.png')
 
 feature_success = [np.average(f) for f in feature_accuracies ]
+program_success = [np.average(np.array(a)) for a in program_accuracies ]
 accuracy_matrix = np.array([human_success,program_success,feature_success,boost_success])
+
+print program_success
 covariance = np.corrcoef(accuracy_matrix)
 print covariance
 
