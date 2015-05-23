@@ -1,5 +1,6 @@
 import os
 import sys
+import random
 
 def dinner_party(tasks, cores = 10):
     descriptors = {} # for each running process, a file descriptor
@@ -17,6 +18,8 @@ def dinner_party(tasks, cores = 10):
             r,w = os.pipe()
             p = os.fork()
             if p == 0:
+                # give us a unique random seed
+                random.seed(os.getpid())
                 sys.stdout = os.fdopen(w, "w")
                 print task(),
                 sys.exit()
@@ -45,3 +48,7 @@ def parallel_map(f,l,cores = 10):
 
 
 
+if __name__ == "__main__":
+    def f(i):
+        return "%i-%f" % (i,random.random())
+    print parallel_map(f,list(range(10)))
