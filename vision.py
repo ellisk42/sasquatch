@@ -27,6 +27,9 @@ class Shape():
         self.x = x
         self.y = y
         self.name = name
+        # convert the logarithmic scale
+        if isinstance(scale,float) and scale > 0.0:
+            scale = math.log(scale)
         self.scale = scale
         self.orientation = orientation
     def convert_to_tuple(self):
@@ -34,7 +37,7 @@ class Shape():
     def __str__(self):
         if self.scale == 1.0:
             return "%i@(%i,%i)" % (self.name,self.x,self.y)
-        return "%i@(%i,%i)x%f" % (self.name, self.x, self.y, self.scale)
+        return "%i@(%i,%i)x%f" % (self.name, self.x, self.y, math.exp(self.scale))
         
 
 class Observation:
@@ -68,7 +71,7 @@ for picture_file in sys.argv[1:]:
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
         if not reading_test_data:
-            print "PICTURE:\n\t", '\t'.join([ str(s) for s in shapes ])
+            print "PICTURE:",picture_file,"\n\t", '\t'.join([ str(s) for s in shapes ])
             if len(borderings) > 0: print '\tBORDERS: %s' % str(borderings)
             if len(containment) > 0: print '\tCONTAINS: %s' % str(containment)
         composite = Observation([ss for ss in shapes ],
@@ -91,7 +94,7 @@ LB = max([ len(o.bordering) for o in observations])
 
 # determine number of latent scaling variables
 LZ = 0
-if all([ any([ s.scale < 1.0 for s in o.coordinates ]) for o in observations ]):
+if all([ any([ s.scale < 0.0 for s in o.coordinates ]) for o in observations ]):
     LZ = 1
 # determine number of latent rotation variables
 LR = 0
@@ -194,20 +197,20 @@ def define_grammar(LP,LD,LA):
     if LZ > 0:
         rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
              lambda m,i,z: '(draw %s :scale z)' % i,
-             lambda i,s,z: (s[0],z*s[1],s[2]))
+             lambda i,s,z: (s[0],z+s[1],s[2]))
         rule('SHAPE-SIZE',[],
              lambda m: '',
              lambda (t,i): i['scale'])
         rule('INITIAL-SHAPE',['SHAPE-SIZE'],
              lambda m,z: '(draw s[0] :scale z)',
-             lambda (t,i),z: (i['shapes'][0][0],i['shapes'][0][1]*z,i['shapes'][0][2]))
+             lambda (t,i),z: (i['shapes'][0][0],i['shapes'][0][1]+z,i['shapes'][0][2]))
     if LR > 0:
         rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE','SHAPE-ORIENTATION'],
              lambda m,i,z,o: '(draw %s :scale z :orientation o)' % i,
-             lambda i,s,z,o: (s[0],z*s[1],o+s[2]))
+             lambda i,s,z,o: (s[0],z+s[1],o+s[2]))
         rule('INITIAL-SHAPE',['SHAPE-SIZE','SHAPE-ORIENTATION'],
              lambda m,z,o: '(draw s[0] :scale z :orientation o)',
-             lambda (t,i),z,o: (i['shapes'][0][0],i['shapes'][0][1]*z,i['shapes'][0][2]+o))
+             lambda (t,i),z,o: (i['shapes'][0][0],i['shapes'][0][1]+z,i['shapes'][0][2]+o))
         rule('SHAPE-ORIENTATION',[],
              lambda m: '',
              lambda (t,i): i['orientation'])
@@ -383,7 +386,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
                 program = program + ("s_scale[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][1])))
                 program = program + ("s_orientation[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][2])))
             if LZ > 0:
-                program += "\n\tz = %f" % extract_real(m,inputs[n][1]['scale'])
+                program += "\n\tz = %f" % math.exp(extract_real(m,inputs[n][1]['scale']))
             if LR > 0:
                 program += "\n\to = %f" % extract_real(m,inputs[n][1]['orientation'])
             program = program + "\n"
