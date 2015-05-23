@@ -10,7 +10,7 @@ MDL_REAL = 10
 
 translational_noise = 3
 JITTER = 7
-solver_timeout = None#30
+solver_timeout = 30
 
 
 LK = 0 # latent containments
@@ -113,25 +113,43 @@ def move_turtle(x,y,tx,ty,d,ax,ay):
 
 def define_grammar(LP,LD,LA):
     if LD > 0:
-        rule('ORIENTATION', [],
-             lambda m: "0deg",
-             lambda i: (1.0,0.0))
-        rule('TURN', [],
-             lambda m: "90deg",
-             lambda i: (0.0,1.0))
-        rule('TURN', [],
-             lambda m: "-90deg",
-             lambda i: (0.0,-1.0))
-        rule('ORIENTATION',['TURN'],
-             lambda m,t: t,
-             lambda i,t: t)
-        indexed_rule('ORIENTATION', 'a', LA,
-                     lambda (t,i): i['angles'])
-        rule('LOCATE', ['DISTANCE','ORIENTATION'],
-             lambda m, d, o: "(move %s %s)" % (d,o),
-             lambda ((x,y,dx,dy),i), d, (dxp,dyp): move_turtle(x,y,dx,dy,d,dxp,dyp))
-        indexed_rule('DISTANCE', 'l', LD,
-                     lambda (t,i): i['distances'])
+        if LD == 1 and LA == 0:
+            rule('MOVE',[],
+                 lambda m: "(move l[0] 0deg)",
+                 lambda ((x,y,dx,dy),i): (x+dx,y+dy,dx,dy))
+            rule('MOVE',['TURN'],
+                 lambda m,t: t,
+                 lambda m,t: t)
+            rule('TURN',[],
+                 lambda m: '(move l[0] 90deg)',
+                 lambda ((x,y,dx,dy),i): (x-dy,y+dx,-dy,dx))
+            rule('TURN',[],
+                 lambda m: '(move l[0] -90deg)',
+                 lambda ((x,y,dx,dy),i): (x+dy,y-dx,dy,-dx))
+            rule('LOCATE',['MOVE'],
+                 lambda m,l: l,
+                 lambda i,l: l)
+        else:
+            rule('ORIENTATION', [],
+                 lambda m: "0deg",
+                 lambda i: (1.0,0.0))
+
+            rule('TURN', [],
+                 lambda m: "90deg",
+                 lambda i: (0.0,1.0))
+            rule('TURN', [],
+                 lambda m: "-90deg",
+                 lambda i: (0.0,-1.0))
+            rule('ORIENTATION',['TURN'],
+                 lambda m,t: t,
+                 lambda i,t: t)
+            indexed_rule('ORIENTATION', 'a', LA,
+                         lambda (t,i): i['angles'])
+            rule('LOCATE', ['DISTANCE','ORIENTATION'],
+                 lambda m, d, o: "(move %s %s)" % (d,o),
+                 lambda ((x,y,dx,dy),i), d, (dxp,dyp): move_turtle(x,y,dx,dy,d,dxp,dyp))
+            indexed_rule('DISTANCE', 'l', LD,
+                         lambda (t,i): i['distances'])
     
     indexed_rule('POSITION', 'r', LP,
                  lambda (t,i): i['positions'])
@@ -266,18 +284,6 @@ def check_picture(picture,observation):
     
 
 def make_new_input(LA,LD,LP):
-    ps = [ (real(), real()) for j in range(LP) ]
-    ds = real_numbers(LD)
-    ts = [ (real(), real()) for j in range(LA) ]
-    z = None if LZ == 0 else real()
-    o = None if LR == 0 else real()
-    for tx,ty in ts:
-        constrain_angle(tx,ty)
-    if LD > 0:
-        ix,iy = real(), real()
-        constrain_angle(iy,ix)
-    else:
-        ix,iy = None, None
     ss = real_numbers(LS)
     zs = real_numbers(LS)
     os = real_numbers(LS)
@@ -287,6 +293,22 @@ def make_new_input(LA,LD,LP):
     constrain(jx > -JITTER)
     constrain(jy < JITTER)
     constrain(jy> -JITTER)
+    ps = [ (real(), real()) for j in range(LP) ]
+    z = None if LZ == 0 else real()
+    o = None if LR == 0 else real()
+    
+    is_linear = LA == 0 and LD == 1
+
+    ds = None if is_linear else real_numbers(LD)
+    ts = [ (real(), real()) for j in range(LA) ]
+    for tx,ty in ts:
+        constrain_angle(tx,ty)
+    if LD > 0:
+        ix,iy = real(), real()
+        if not is_linear:
+            constrain_angle(iy,ix)
+    else:
+        ix,iy = None, None
     return ((0,0,1,0),{"distances": ds, "angles": ts, "positions": ps, 
                        "shapes": zip(ss,zs,os), 
                        "scale": z, "orientation": o,
@@ -330,7 +352,7 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
     
     # modify printer so it also includes the latent dimensions
     def full_printer(m):
-        
+        is_linear = inputs[0][1]['distances'] == None
         program = pr(m)+containment_printer(m)+borders_printer(m)+"\n"
         for n in range(len(observations)):
             program += "\nObservation %i:\n\t" % n
@@ -340,12 +362,16 @@ for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,pictur
                                                             extract_real(m,inputs[n][1]['positions'][d][1])))
                 program += "\n\t"
             if LD > 0:
-                a = int(math.atan2(extract_real(m,inputs[n][1]['initial-dy']),
-                                   extract_real(m,inputs[n][1]['initial-dx']))/math.pi*180.0)
+                dy = extract_real(m,inputs[n][1]['initial-dy'])
+                dx = extract_real(m,inputs[n][1]['initial-dx'])
+                a = int(math.atan2(dy,dx)/math.pi*180.0)
                 program += "initial-orientation = %f;\n\t" % a
-                for d in range(LD):
-                    program = program + ("l[%s] = %f; " % (str(d), 
-                                                           extract_real(m,inputs[n][1]['distances'][d])))
+                if not is_linear:
+                    for d in range(LD):
+                        program = program + ("l[%s] = %f; " % (str(d), 
+                                                               extract_real(m,inputs[n][1]['distances'][d])))
+                else:
+                    program += "l[0] = %f" % (math.sqrt(dx*dx+dy*dy))
                 program += "\n\t"
             if LA > 0:
                 for (dx,dy),index in zip(inputs[n][1]['angles'], range(LA)):
