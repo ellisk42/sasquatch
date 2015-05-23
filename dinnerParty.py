@@ -1,6 +1,7 @@
 import os
 import sys
 import random
+import time
 
 def dinner_party(tasks, cores = 10):
     descriptors = {} # for each running process, a file descriptor
@@ -19,7 +20,7 @@ def dinner_party(tasks, cores = 10):
             p = os.fork()
             if p == 0:
                 # give us a unique random seed
-                random.seed(os.getpid())
+                random.seed(os.getpid()+time.time())
                 sys.stdout = os.fdopen(w, "w")
                 print task(),
                 sys.exit()
