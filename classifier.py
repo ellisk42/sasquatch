@@ -106,17 +106,17 @@ def Bayesian_classifier(P,N,S):
         # likelihood of each cluster on its own
         likelihood_a = run_output(class_a)
         likelihood_be = run_output(class_B)
-        print "A,B = ",likelihood_a,likelihood_be
+#        print "A,B = ",likelihood_a,likelihood_be
         
         # likelihood_of_each_cluster with a test point added
         a_test_b = run_output(class_a + [test_be])
         a_test_a = run_output(class_a + [test_a])
         b_test_b = run_output(class_B + [test_be])
         b_test_a = run_output(class_B + [test_a])
-        print "A+a = ",a_test_a
-        print "A+b = ",a_test_b
-        print "B+a = ",b_test_a
-        print "B+b = ",b_test_b
+#        print "A+a = ",a_test_a
+#        print "A+b = ",a_test_b
+#        print "B+a = ",b_test_a
+#        print "B+b = ",b_test_b
         
         # how did we do with test a?
         marginal_a = a_test_a + likelihood_be
