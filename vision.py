@@ -18,9 +18,9 @@ LB = 0 # latent borders
 LS = 0 # latent shapes
 
 VERBOSE = True
-if sys.argv[1] == '--quiet':
-    VERBOSE = False
-
+def vision_verbosity(v):
+    global VERBOSE
+    VERBOSE = v
 
 class Shape():
     def __init__(self,x,y,name,scale,orientation):
@@ -48,16 +48,12 @@ class Observation:
         self.coordinates = c
         self.containment = k
         self.bordering = b
+    def show(self):
+        print '\t'.join([ str(s) for s in self.coordinates ])
+        if len(self.bordering) > 0: print '\tBORDERS: %s' % str(self.bordering)
+        if len(self.containment) > 0: print '\tCONTAINS: %s' % str(self.containment)
 
-
-observations = []
-test_observations = []
-reading_test_data = False
-for picture_file in sys.argv[1:]:
-    if picture_file == '--quiet': continue
-    if picture_file == 'test':
-        reading_test_data = True
-        continue
+def load_picture(picture_file):
     if picture_file[0] != 'p':
         picture_file = "pictures/" + picture_file
     with open(picture_file,'r') as picture:
@@ -73,38 +69,62 @@ for picture_file in sys.argv[1:]:
                 containment.append((int(k.group(1)),int(k.group(2))))
             if b:
                 borderings.append((int(b.group(1)),int(b.group(2))))
-        if not reading_test_data:
-            print "PICTURE:",picture_file,"\n\t", '\t'.join([ str(s) for s in shapes ])
-            if len(borderings) > 0: print '\tBORDERS: %s' % str(borderings)
-            if len(containment) > 0: print '\tCONTAINS: %s' % str(containment)
         composite = Observation([ss for ss in shapes ],
                                 containment, borderings)
-        if not reading_test_data:
-            observations.append(composite)
+        return composite
+
+def load_pictures(files, show = False):
+    o = [load_picture(f) for f in files ]
+    if show:
+        for j in range(len(files)):
+            print "PICTURE:",files[j],
+            o[j].show()
+    return o
+
+def parse_arguments():
+    global VERBOSE
+    if sys.argv[1] == '--quiet':
+        VERBOSE = False
+        sys.argv.remove('--quiet')
+    observations = []
+    test_observations = []
+    reading_test_data = False
+    for p in sys.argv[1:]:
+        if p == 'test':
+            reading_test_data = True
+            continue
+        if reading_test_data:
+            test_observations.append(p)
         else:
-            test_observations.append(composite)
+            observations.append(p)
+    return observations,test_observations
 
-# remove incorrectly parsed training data
-picture_size = distribution_mode([ len(observation.coordinates) 
-                                   for observation in observations ])
-observations = [o for o in observations
-                if len(o.coordinates) == picture_size]
 
-LS = int(max([ shape.name for o in observations
-               for shape in o.coordinates ]))
-LK = max([ len(o.containment) for o in observations])
-LB = max([ len(o.bordering) for o in observations])
 
-# determine number of latent scaling variables
-LZ = 0
-if all([ any([ s.scale < 0.0 for s in o.coordinates ]) for o in observations ]):
-    LZ = 1
-# determine number of latent rotation variables
-LR = 0
-if all([ any([ s.orientation > 0.0 for s in o.coordinates ]) for o in observations ]):
-    LR = 1
-LZ = max(LZ,LR)
+def set_degrees_of_freedom(observations):
+    global picture_size,LS,LK,LB,LZ,LR
+    # remove incorrectly parsed training data
+    picture_size = distribution_mode([ len(observation.coordinates) 
+                                       for observation in observations ])
+    observations = [o for o in observations
+                    if len(o.coordinates) == picture_size]
 
+    LS = int(max([ shape.name for o in observations
+                   for shape in o.coordinates ]))
+    LK = max([ len(o.containment) for o in observations])
+    LB = max([ len(o.bordering) for o in observations])
+
+    # determine number of latent scaling variables
+    LZ = 0
+    if all([ any([ s.scale < 0.0 for s in o.coordinates ]) for o in observations ]):
+        LZ = 1
+    # determine number of latent rotation variables
+    LR = 0
+    if all([ any([ s.orientation > 0.0 for s in o.coordinates ]) for o in observations ]):
+        LR = 1
+    LZ = max(LZ,LR)
+    
+    return observations
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
     constrain(d > 0)
@@ -322,120 +342,114 @@ def make_new_input(LA,LD,LP):
                        "initial-dx": ix, "initial-dy": iy})
         
 
-solutions = []    
-for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
-    # make sure that the latent dimensions make sense
-    if LA > LD: continue
-    if LP + LD > picture_size: continue
-    # do you have a latent initial rotation?
-    LI = LD > 0
+def grid_search(observations):
+    set_degrees_of_freedom(observations)
+    solutions = []    
+    for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
+        # make sure that the latent dimensions make sense
+        if LA > LD: continue
+        if LP + LD > picture_size: continue
+        # do you have a latent initial rotation?
+        LI = LD > 0
+
+        clear_solver()
+        define_grammar(LP, LD, LA)
+
+        draw_picture,mdl,pr = imperative_generator('DRAW-ACTION',picture_size,initial_production = 'INITIAL-DRAW')
+        containment,containment_length,containment_printer = imperative_generator('TOPOLOGY-CONTAINS',LK)
+        containment = containment(None,None)
+        containment_data = summation([ If(t[0],0,logarithm(2)) for t in containment ])
+        borders,borders_length,borders_printer = imperative_generator('TOPOLOGY-BORDERS',LB)
+        borders = borders(None,None)
+        borders_data = summation([ If(t[0],0,logarithm(2)) for t in borders ])
+        dataMDL = len(observations)*(MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+containment_data+borders_data)
+        mdl = summation([mdl,dataMDL,containment_length,borders_length])
+
+        # Push a frame to hold all of the training data
+        push_solver()
+        inputs = [ make_new_input(LA,LD,LP) for n in range(len(observations)) ]
+
+        for i in range(len(observations)):
+            picture = draw_picture(*inputs[i])
+            check_picture(Observation(picture,containment,borders),observations[i])
+
+        # If we have a solution so far, ensure that we beat it
+        if len(solutions) > 0:
+            bestLength = min(solutions)[0]
+            constrain(mdl < bestLength)
+
+        # modify printer so it also includes the latent dimensions
+        def full_printer(m):
+            is_linear = inputs[0][1]['distances'] == None
+            program = pr(m)+containment_printer(m)+borders_printer(m)+"\n"
+            for n in range(len(observations)):
+                program += "\nObservation %i:\n\t" % n
+                for d in range(LP):
+                    program = program + ("r[%s] = (%f,%f); " % (str(d),
+                                                                extract_real(m,inputs[n][1]['positions'][d][0]),
+                                                                extract_real(m,inputs[n][1]['positions'][d][1])))
+                    program += "\n\t"
+                if LD > 0:
+                    dy = extract_real(m,inputs[n][1]['initial-dy'])
+                    dx = extract_real(m,inputs[n][1]['initial-dx'])
+                    a = int(math.atan2(dy,dx)/math.pi*180.0)
+                    program += "initial-orientation = %f;\n\t" % a
+                    if not is_linear:
+                        for d in range(LD):
+                            program = program + ("l[%s] = %f; " % (str(d), 
+                                                                   extract_real(m,inputs[n][1]['distances'][d])))
+                    else:
+                        program += "l[0] = %f" % (math.sqrt(dx*dx+dy*dy))
+                    program += "\n\t"
+                if LA > 0:
+                    for (dx,dy),index in zip(inputs[n][1]['angles'], range(LA)):
+                        a = int(math.atan2(extract_real(m,dy),extract_real(m,dx))/math.pi*180.0)
+                        program = program + ("a[%i] = %i; " % (index, a))
+                    program += "\n\t"
+                for sh in range(LS):
+                    program = program + ("s[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][0])))
+                    program = program + ("s_scale[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][1])))
+                    program = program + ("s_orientation[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][2])))
+                if LZ > 0:
+                    program += "\n\tz = %f" % math.exp(extract_real(m,inputs[n][1]['scale']))
+                if LR > 0:
+                    program += "\n\to = %f" % extract_real(m,inputs[n][1]['orientation'])
+                program = program + "\n"
+            return program
+
+        if VERBOSE: print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+        p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout,verbose = VERBOSE)
+        if m == None:
+            if VERBOSE: print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+        else:
+            if VERBOSE: print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+            kd = extract_real(get_recent_model(),containment_data) if LK > 0 else 0
+            bd = extract_real(get_recent_model(),borders_data) if LB > 0 else 0
+            solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
+    return solutions
+
+
+def compute_picture_likelihoods(observations,test_observations):
+    observations = load_pictures(observations,show = VERBOSE)
+    test_observations = load_pictures(test_observations)
+    solutions = grid_search(observations)
     
-    clear_solver()
-    define_grammar(LP, LD, LA)
-       
-    draw_picture,mdl,pr = imperative_generator('DRAW-ACTION',picture_size,initial_production = 'INITIAL-DRAW')
-    containment,containment_length,containment_printer = imperative_generator('TOPOLOGY-CONTAINS',LK)
-    containment = containment(None,None)
-    containment_data = summation([ If(t[0],0,logarithm(2)) for t in containment ])
-    borders,borders_length,borders_printer = imperative_generator('TOPOLOGY-BORDERS',LB)
-    borders = borders(None,None)
-    borders_data = summation([ If(t[0],0,logarithm(2)) for t in borders ])
-    dataMDL = len(observations)*(MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+containment_data+borders_data)
-    mdl = summation([mdl,dataMDL,containment_length,borders_length])
+    # Failure to synthesize any program
+    if len(solutions) == 0:
+        return float('-inf'), [float('-inf')]*len(test_observations)
+        
+    (m,p,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
+    LI = LD > 0 # initial rotation
+    marginal = -m
     
-    # Push a frame to hold all of the training data
-    push_solver()
-    inputs = [ make_new_input(LA,LD,LP) for n in range(len(observations)) ]
-
-    for i in range(len(observations)):
-        picture = draw_picture(*inputs[i])
-        check_picture(Observation(picture,containment,borders),observations[i])
-    
-    # If we have a solution so far, ensure that we beat it
-    if len(solutions) > 0:
-        bestLength = min(solutions)[0]
-        constrain(mdl < bestLength)
-    
-    # modify printer so it also includes the latent dimensions
-    def full_printer(m):
-        is_linear = inputs[0][1]['distances'] == None
-        program = pr(m)+containment_printer(m)+borders_printer(m)+"\n"
-        for n in range(len(observations)):
-            program += "\nObservation %i:\n\t" % n
-            for d in range(LP):
-                program = program + ("r[%s] = (%f,%f); " % (str(d),
-                                                            extract_real(m,inputs[n][1]['positions'][d][0]),
-                                                            extract_real(m,inputs[n][1]['positions'][d][1])))
-                program += "\n\t"
-            if LD > 0:
-                dy = extract_real(m,inputs[n][1]['initial-dy'])
-                dx = extract_real(m,inputs[n][1]['initial-dx'])
-                a = int(math.atan2(dy,dx)/math.pi*180.0)
-                program += "initial-orientation = %f;\n\t" % a
-                if not is_linear:
-                    for d in range(LD):
-                        program = program + ("l[%s] = %f; " % (str(d), 
-                                                               extract_real(m,inputs[n][1]['distances'][d])))
-                else:
-                    program += "l[0] = %f" % (math.sqrt(dx*dx+dy*dy))
-                program += "\n\t"
-            if LA > 0:
-                for (dx,dy),index in zip(inputs[n][1]['angles'], range(LA)):
-                    a = int(math.atan2(extract_real(m,dy),extract_real(m,dx))/math.pi*180.0)
-                    program = program + ("a[%i] = %i; " % (index, a))
-                program += "\n\t"
-            for sh in range(LS):
-                program = program + ("s[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][0])))
-                program = program + ("s_scale[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][1])))
-                program = program + ("s_orientation[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][2])))
-            if LZ > 0:
-                program += "\n\tz = %f" % math.exp(extract_real(m,inputs[n][1]['scale']))
-            if LR > 0:
-                program += "\n\to = %f" % extract_real(m,inputs[n][1]['orientation'])
-            program = program + "\n"
-        return program
-    
-    if VERBOSE: print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-    p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout,verbose = VERBOSE)
-    if m == None:
-        if VERBOSE: print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-    else:
-        if VERBOSE: print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
-        kd = extract_real(get_recent_model(),containment_data) if LK > 0 else 0
-        bd = extract_real(get_recent_model(),borders_data) if LB > 0 else 0
-        solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
-
-
-
-# Failure to synthesize any program
-if len(solutions) == 0:
-    print "Failure to synthesize"
-    print "Marginal likelihood: infinity"
-    if test_observations:
-        print "Test data log likelihoods:"
-        for t in test_observations:
-            print "-infinity"
-    else:
-        print "infinity"
-    sys.exit(0)
-
-(m,p,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
-LI = LD > 0 # initial rotation
-print "="*40
-print "Best solution: %f bits (D,A,P = %i,%i,%i)" % (m,LD,LA,LP)
-print "="*40
-
-print "Marginal likelihood: %f" % m
-
-set_solver(solver)
-if test_observations:
-    print "Test data log likelihoods:"
+    set_solver(solver)
+    test_likelihoods = []
     for test in test_observations:
         if (len(test.coordinates) != picture_size
             or max([ shape.name for shape in test.coordinates ]) > LS
             or len(test.containment) > LK
             or len(test.bordering) > LB):
-            print "-infinity"
+            test_likelihoods.append(float('-inf'))
             continue
         push_solver()
         inputs = make_new_input(LA,LD,LP)
@@ -445,10 +459,12 @@ if test_observations:
                                   b),
                       test)
         if 'sat' == str(solver.check()):
-            print "-%f" % (MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+kd+bd)
+            test_likelihoods.append(-(MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+kd+bd))
         else:
-            print "-infinity"
+            test_likelihoods.append(float('-inf'))
         pop_solver()
-else:
-    print m
+    return marginal,test_likelihoods
         
+if __name__ == '__main__':
+    observations,test_observations = parse_arguments()
+    print compute_picture_likelihoods(observations,test_observations)

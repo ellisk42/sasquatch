@@ -237,12 +237,14 @@ def train_on_matrix(observations):
     maximum_length = max([len(w.split(' ')) for s,t,w in observations ])
     # one program for each tense
     programs = {}
+    for (stem,t,inflected) in observations:
+        if not (t in programs):
+            programs[t] = generator(3,'CONDITIONAL')
+    push_solver() # frame for the training data
     # one stem for each form
     stems = {}
     inputs = {}
     for (stem,t,inflected) in observations:
-        if not (t in programs):
-            programs[t] = generator(3,'CONDITIONAL')
         if not (stem in stems):
             stems[stem] = morpheme()
             inputs[stem] = {'lemma': stems[stem],
@@ -265,7 +267,46 @@ def train_on_matrix(observations):
             model += "stem[%s] = %s\n" % (stem,extract_string(m,inputs[stem]['lemma']))
         return model
     compressionLoop(printer,description_length)
-train_on_matrix(sparse_lexicon(N))
+    return programs
+
+
+def testing_likelihood(programs):
+    solver = get_solver()
+    likelihood = 0.0
+    for test in verbs:
+        push_solver()
+        test_input = {'lemma': morpheme() }
+        test_input['last'] = last_one(test_input['lemma'])
+        noise_penalties = []
+        exception = {}
+        for t in programs:
+            cs = constrain_phonemes(programs[t][0](test_input),test[t])
+            inflection_length = len(test[t].split(' '))
+            exception[t] = boolean()
+            constrain(Implies(Not(exception[t]),And(*cs)))
+            noise_penalties.append(If(Not(exception[t]),
+                                      0.0,
+                                      -logarithm(epsilon) + logarithm(44)*inflection_length))
+#            constrain(cs)
+        description_length = summation([test_input['lemma'][0]*logarithm(44)] + noise_penalties)
+        model,l = compressionLoop(lambda m: "",description_length,verbose = False,enforce_structure = False)
+        assert model != 'FAIL'
+        model = solver.model()
+        likelihood += l
+        # check if we passed the test
+        print exception
+        print model
+        for e in exception:
+            print e, exception[e]
+            print model[exception[e]]
+        exception = any([extract_bool(model,exception[e]) == 'True' for e in exception ])
+        if exception: print "Passed %s" % test[0]
+        else: print "Failed %s" % test[0]
+        pop_solver()
+    print likelihood
+
+programs = train_on_matrix(sparse_lexicon(N))
+testing_likelihood(programs)
 sys.exit(0)
 
 observations = sample_corpus(N,None,True)
@@ -318,6 +359,7 @@ def printer(m):
 
 
 total = summation(noise_penalties + [p[1] for p in programs ] + [stem_length])
+
 
 
 if compressionLoop(printer,total)[0] == 'FAIL':

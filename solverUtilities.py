@@ -117,7 +117,7 @@ def conditional(p,q,r):
     return tuple([ If(p,a,b) for a,b in zip(list(q),list(r)) ])
 
 
-def compressionLoop(pr,mdl,verbose = True,timeout = None):
+def compressionLoop(pr,mdl,verbose = True,timeout = None,enforce_structure = True):
     global recent_model
     if timeout:
         slv.set("timeout",timeout*1000)
@@ -156,7 +156,7 @@ def compressionLoop(pr,mdl,verbose = True,timeout = None):
     # pop the frame that contains the training data
     pop_solver()
     # constrain the solution to be the best one that we found
-    slv.add(And(*structure_constraints))
+    if enforce_structure: slv.add(And(*structure_constraints))
     return pr(m), extract_real(m,mdl)
 
 
