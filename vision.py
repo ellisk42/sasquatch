@@ -28,8 +28,11 @@ class Shape():
         self.y = y
         self.name = name
         # convert the logarithmic scale
-        if isinstance(scale,float) and scale > 0.0:
-            scale = math.log(scale)
+        if isinstance(scale,float):
+            if scale > 0.0:
+                scale = math.log(scale)
+            if scale > math.log(0.95):
+                scale = 0.0
         self.scale = scale
         self.orientation = orientation
     def convert_to_tuple(self):
