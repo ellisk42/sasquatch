@@ -318,7 +318,7 @@ def make_new_input(LA,LD,LP):
     constrain(jx < JITTER)
     constrain(jx > -JITTER)
     constrain(jy < JITTER)
-    constrain(jy> -JITTER)
+    constrain(jy > -JITTER)
     ps = [ (real(), real()) for j in range(LP) ]
     z = None if LZ == 0 else real()
     o = None if LR == 0 else real()
@@ -343,7 +343,7 @@ def make_new_input(LA,LD,LP):
         
 
 def grid_search(observations):
-    set_degrees_of_freedom(observations)
+    observations = set_degrees_of_freedom(observations)
     solutions = []    
     for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
         # make sure that the latent dimensions make sense

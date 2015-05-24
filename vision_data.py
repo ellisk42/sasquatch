@@ -13,7 +13,7 @@ def task(t):
 def flatten(xs):
     return [i for l in xs for i in l  ]
 
-T = 23
+T = 3
 
 arguments = flatten([[t]*S for t in range(1,T+1) ])
 
