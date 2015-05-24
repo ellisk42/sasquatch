@@ -268,7 +268,6 @@ def testing_likelihood(programs):
     solver = get_solver()
     likelihood = 0.0
     for test in verbs:
-        print test
         push_solver()
         maximum_length = max([len(test[t].split(' ')) for t in programs ] + [minimum_maximum])
         test_input = {'lemma': morpheme() }
@@ -286,7 +285,6 @@ def testing_likelihood(programs):
 #            constrain(cs)
         description_length = summation([test_input['lemma'][0]*logarithm(44)] + noise_penalties)
         model,l = compressionLoop(lambda m: "",description_length,verbose = False,enforce_structure = False)
-        print 
         assert model != 'FAIL'
         model = get_recent_model()
         likelihood -= l
@@ -294,9 +292,9 @@ def testing_likelihood(programs):
         exception = any([extract_bool(model,exception[e]) == 'True' for e in exception ])
         if not exception: print "Passed %s" % test[0]
         else: print "Failed %s" % test[0]
-    print likelihood
+    print "LIKELIHOOD",likelihood
 
 if __name__ == '__main__':
     N = int(sys.argv[1])
-    programs = train_on_matrix(unsupervised_matrix)#(sample_corpus(N))#(sparse_lexicon(N))
+    programs = train_on_matrix(sparse_lexicon(N))#(unsupervised_matrix)#(sample_corpus(N))
     testing_likelihood(programs)
