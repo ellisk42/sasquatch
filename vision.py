@@ -115,7 +115,7 @@ def set_degrees_of_freedom(observations):
     LB = max([ len(o.bordering) for o in observations])
 
     # determine number of latent scaling variables
-    LZ = 0
+    LZ = 1
     if all([ any([ s.scale < 0.0 for s in o.coordinates ]) for o in observations ]):
         LZ = 1
     # determine number of latent rotation variables
@@ -410,7 +410,7 @@ def grid_search(observations):
                     program = program + ("s[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][0])))
                     program = program + ("s_scale[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][1])))
                     program = program + ("s_orientation[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][2])))
-                if LZ > 0:
+                if LZ > 0 and m[inputs[n][1]['scale']]:
                     program += "\n\tz = %f" % math.exp(extract_real(m,inputs[n][1]['scale']))
                 if LR > 0:
                     program += "\n\to = %f" % extract_real(m,inputs[n][1]['orientation'])
