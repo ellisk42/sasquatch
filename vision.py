@@ -23,7 +23,7 @@ def vision_verbosity(v):
     VERBOSE = v
 
 class Shape():
-    def __init__(self,x,y,name,scale,orientation):
+    def __init__(self,x,y,name,scale,orientation = 0.0):
         self.x = x
         self.y = y
         self.name = name
@@ -31,14 +31,13 @@ class Shape():
         if isinstance(scale,float):
             if scale > 0.0:
                 scale = math.log(scale)
-            if scale > math.log(0.95):
+            if scale > math.log(0.98):
                 scale = 0.0
         self.scale = scale
-        self.orientation = orientation
     def convert_to_tuple(self):
-        return (self.x,self.y,self.name,self.scale,self.orientation)
+        return (self.x,self.y,self.name,self.scale)
     def __str__(self):
-        if self.scale == 1.0:
+        if self.scale == 0.0:
             return "%i@(%i,%i)" % (self.name,self.x,self.y)
         return "%i@(%i,%i)x%f" % (self.name, self.x, self.y, math.exp(self.scale))
         
@@ -102,7 +101,7 @@ def parse_arguments():
 
 
 def set_degrees_of_freedom(observations):
-    global picture_size,LS,LK,LB,LZ,LR
+    global picture_size,LS,LK,LB
     # remove incorrectly parsed training data
     picture_size = distribution_mode([ len(observation.coordinates) 
                                        for observation in observations ])
@@ -114,16 +113,6 @@ def set_degrees_of_freedom(observations):
     LK = max([ len(o.containment) for o in observations])
     LB = max([ len(o.bordering) for o in observations])
 
-    # determine number of latent scaling variables
-    LZ = 1
-    if all([ any([ s.scale < 0.0 for s in o.coordinates ]) for o in observations ]):
-        LZ = 1
-    # determine number of latent rotation variables
-    LR = 0
-    if all([ any([ s.orientation > 0.0 for s in o.coordinates ]) for o in observations ]):
-        LR = 1
-    LZ = max(LZ,LR)
-    
     return observations
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
@@ -137,7 +126,7 @@ def move_turtle(x,y,tx,ty,d,ax,ay):
     
     return x+d*nx,y+d*ny,nx,ny
 
-def define_grammar(LP,LD,LA):
+def define_grammar(LZ,LP,LD,LA):
     if LD > 0:
         if LD == 1 and LA == 0:
             rule('MOVE',[],
@@ -220,31 +209,20 @@ def define_grammar(LP,LD,LA):
     if LZ > 0:
         rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE'],
              lambda m,i,z: '(draw %s :scale z)' % i,
-             lambda i,s,z: (s[0],z+s[1],s[2]))
+             lambda i,s,z: (s[0],z+s[1]))
         rule('SHAPE-SIZE',[],
              lambda m: '',
              lambda (t,i): i['scale'])
         rule('INITIAL-SHAPE',['SHAPE-SIZE'],
              lambda m,z: '(draw s[0] :scale z)',
-             lambda (t,i),z: (i['shapes'][0][0],i['shapes'][0][1]+z,i['shapes'][0][2]))
-    if LR > 0:
-        rule('SHAPE',['SHAPE-INDEX','SHAPE-SIZE','SHAPE-ORIENTATION'],
-             lambda m,i,z,o: '(draw %s :scale z :orientation o)' % i,
-             lambda i,s,z,o: (s[0],z+s[1],o+s[2]))
-        rule('INITIAL-SHAPE',['SHAPE-SIZE','SHAPE-ORIENTATION'],
-             lambda m,z,o: '(draw s[0] :scale z :orientation o)',
-             lambda (t,i),z,o: (i['shapes'][0][0],i['shapes'][0][1]+z,i['shapes'][0][2]+o))
-        rule('SHAPE-ORIENTATION',[],
-             lambda m: '',
-             lambda (t,i): i['orientation'])
-        
+             lambda (t,i),z: (i['shapes'][0][0],i['shapes'][0][1]+z))
     
     rule('DRAW-ACTION',['LOCATE','SHAPE'],
          lambda m,l,s: l + "\n" + s,
-         lambda state, (x,y,dx,dy), (s,z,o): ((x,y,s,z,o),(x,y,dx,dy)))
+         lambda state, (x,y,dx,dy), (s,z): ((x,y,s,z),(x,y,dx,dy)))
     rule('INITIAL-DRAW',['INITIALIZE','INITIAL-SHAPE'],
          lambda m,l,s: l + "\n" + s,
-         lambda state, (x,y,dx,dy), (s,z,o): ((x,y,s,z,o),(x,y,dx,dy)))
+         lambda state, (x,y,dx,dy), (s,z): ((x,y,s,z),(x,y,dx,dy)))
     
     rule('TOPOLOGY-OPTION',[],
          lambda m: "",
@@ -278,8 +256,7 @@ def check_shape(shape, shapep):
     return [shape.x <= shapep.x + e, shape.x >= shapep.x - e,
             shape.y <= shapep.y + e, shape.y >= shapep.y - e,
             shape.name == shapep.name,
-            shape.scale == shapep.scale,
-            shape.orientation == shapep.orientation]
+            shape.scale == shapep.scale]
 
 # adds a constraint saying that the picture has to equal some permutation of the observation
 def check_picture(picture,observation):
@@ -309,10 +286,9 @@ def check_picture(picture,observation):
         
     
 
-def make_new_input(LA,LD,LP):
+def make_new_input(LZ,LA,LD,LP):
     ss = real_numbers(LS)
     zs = real_numbers(LS)
-    os = real_numbers(LS)
     jx = real()
     jy = real()
     constrain(jx < JITTER)
@@ -321,7 +297,8 @@ def make_new_input(LA,LD,LP):
     constrain(jy > -JITTER)
     ps = [ (real(), real()) for j in range(LP) ]
     z = None if LZ == 0 else real()
-    o = None if LR == 0 else real()
+    if LZ > 0:
+        constrain(z < 0.0)
     
     is_linear = LA == 0 and LD == 1
 
@@ -336,8 +313,8 @@ def make_new_input(LA,LD,LP):
     else:
         ix,iy = None, None
     return ((0,0,1,0),{"distances": ds, "angles": ts, "positions": ps, 
-                       "shapes": zip(ss,zs,os), 
-                       "scale": z, "orientation": o,
+                       "shapes": zip(ss,zs), 
+                       "scale": z,
                        "jitter-x": jx, "jitter-y": jy,
                        "initial-dx": ix, "initial-dy": iy})
         
@@ -345,7 +322,7 @@ def make_new_input(LA,LD,LP):
 def grid_search(observations):
     observations = set_degrees_of_freedom(observations)
     solutions = []    
-    for LA,LD,LP in [(a,d,p) for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
+    for LZ,LA,LD,LP in [(z,a,d,p) for z in [0,1]  for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
         # make sure that the latent dimensions make sense
         if LA > LD: continue
         if LP + LD > picture_size: continue
@@ -353,7 +330,7 @@ def grid_search(observations):
         LI = LD > 0
 
         clear_solver()
-        define_grammar(LP, LD, LA)
+        define_grammar(LZ, LP, LD, LA)
 
         draw_picture,mdl,pr = imperative_generator('DRAW-ACTION',picture_size,initial_production = 'INITIAL-DRAW')
         containment,containment_length,containment_printer = imperative_generator('TOPOLOGY-CONTAINS',LK)
@@ -362,12 +339,12 @@ def grid_search(observations):
         borders,borders_length,borders_printer = imperative_generator('TOPOLOGY-BORDERS',LB)
         borders = borders(None,None)
         borders_data = summation([ If(t[0],0,logarithm(2)) for t in borders ])
-        dataMDL = len(observations)*(MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+containment_data+borders_data)
+        dataMDL = len(observations)*(MDL_REAL*(LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+containment_data+borders_data)
         mdl = summation([mdl,dataMDL,containment_length,borders_length])
 
         # Push a frame to hold all of the training data
         push_solver()
-        inputs = [ make_new_input(LA,LD,LP) for n in range(len(observations)) ]
+        inputs = [ make_new_input(LZ,LA,LD,LP) for n in range(len(observations)) ]
 
         for i in range(len(observations)):
             picture = draw_picture(*inputs[i])
@@ -409,23 +386,20 @@ def grid_search(observations):
                 for sh in range(LS):
                     program = program + ("s[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][0])))
                     program = program + ("s_scale[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][1])))
-                    program = program + ("s_orientation[%i] = %f; " % (sh, extract_real(m,inputs[n][1]['shapes'][sh][2])))
-                if LZ > 0 and m[inputs[n][1]['scale']]:
+                if LZ > 0:
                     program += "\n\tz = %f" % math.exp(extract_real(m,inputs[n][1]['scale']))
-                if LR > 0:
-                    program += "\n\to = %f" % extract_real(m,inputs[n][1]['orientation'])
                 program = program + "\n"
             return program
 
-        if VERBOSE: print "Trying LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+        if VERBOSE: print "Trying LZ, LA, LD, LP = %i, %i, %i, %i" % (LZ,LA,LD,LP)
         p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout,verbose = VERBOSE)
         if m == None:
-            if VERBOSE: print "No solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+            if VERBOSE: print "No solution for LZ, LA, LD, LP = %i, %i, %i, %i" % (LZ,LA,LD,LP)
         else:
-            if VERBOSE: print "Got solution for LA, LD, LP = %i, %i, %i" % (LA,LD,LP)
+            if VERBOSE: print "Got solution for LZ, LA, LD, LP = %i, %i, %i, %i" % (LZ,LA,LD,LP)
             kd = extract_real(get_recent_model(),containment_data) if LK > 0 else 0
             bd = extract_real(get_recent_model(),borders_data) if LB > 0 else 0
-            solutions.append((m,p,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
+            solutions.append((m,p,LZ,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
     return solutions
 
 
@@ -438,7 +412,7 @@ def compute_picture_likelihoods(observations,test_observations):
     if len(solutions) == 0:
         return float('-inf'), [float('-inf')]*len(test_observations)
         
-    (m,p,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
+    (m,p,LZ,LA,LD,LP,solver,gen,k,kd,b,bd) = min(solutions)
     LI = LD > 0 # initial rotation
     marginal = -m
     
@@ -452,14 +426,14 @@ def compute_picture_likelihoods(observations,test_observations):
             test_likelihoods.append(float('-inf'))
             continue
         push_solver()
-        inputs = make_new_input(LA,LD,LP)
+        inputs = make_new_input(LZ,LA,LD,LP)
         outputs = gen(*inputs)
         check_picture(Observation(outputs,
                                   k,
                                   b),
                       test)
         if 'sat' == str(solver.check()):
-            test_likelihoods.append(-(MDL_REAL*(LR+LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+kd+bd))
+            test_likelihoods.append(-(MDL_REAL*(LZ+LA+LD+2*LP+LI)+MDL_SHAPE*LS+kd+bd))
         else:
             test_likelihoods.append(float('-inf'))
         pop_solver()
