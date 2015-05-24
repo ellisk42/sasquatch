@@ -215,6 +215,13 @@ def analyze(filename):
         if to_remove:
             changed = True
             shapes.remove(to_remove)
+    if True:
+        i[:] = WHITE
+        for j,s in enumerate(shapes):
+            s = s.mask
+            i = i*(1-s) + (j+2)*s
+        view(i*50)
+
     ns = len(shapes)
     # labeled the shapes
     labeled = []

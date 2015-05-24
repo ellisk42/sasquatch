@@ -9,14 +9,6 @@ from corpus import *
 # exception probability
 epsilon = 0.1
 
-# indexes of the tenses that we will be learning on
-tenses = range(6)
-if sys.argv[1] == 'past':
-    tenses = [3]
-    sys.argv = sys.argv[1:]
-
-TENSES = len(tenses)
-N = int(sys.argv[1])
 
 # map between tipa and z3 character code
 ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', 'D': 'PD', 'R': 'PR', 't': 'Pt',
@@ -59,7 +51,7 @@ maximum_length = 9
 
 def morpheme():
     l = integer()
-    constrain(l < maximum_length+1)
+#    constrain(l < maximum_length+1)
     constrain(l > -1)
     ps = [ Const(new_symbol(), Phoneme) for j in range(maximum_length) ]
     return tuple([l]+ps)
@@ -111,7 +103,7 @@ def concatenate(p,q):
     maxQ = len(q)
     
     constrain(lr == lp+lq)
-    constrain(lr < maximum_length+1)
+#    constrain(lr < maximum_length+1)
     
     for j in range(maximum_length):
         if j < maxP:
@@ -271,17 +263,21 @@ def train_on_matrix(observations):
 
 
 def testing_likelihood(programs):
+    global maximum_length
+    minimum_maximum = maximum_length
     solver = get_solver()
     likelihood = 0.0
     for test in verbs:
+        print test
         push_solver()
+        maximum_length = max([len(test[t].split(' ')) for t in programs ] + [minimum_maximum])
         test_input = {'lemma': morpheme() }
         test_input['last'] = last_one(test_input['lemma'])
         noise_penalties = []
         exception = {}
         for t in programs:
-            cs = constrain_phonemes(programs[t][0](test_input),test[t])
             inflection_length = len(test[t].split(' '))
+            cs = constrain_phonemes(programs[t][0](test_input),test[t])
             exception[t] = boolean()
             constrain(Implies(Not(exception[t]),And(*cs)))
             noise_penalties.append(If(Not(exception[t]),
@@ -290,102 +286,17 @@ def testing_likelihood(programs):
 #            constrain(cs)
         description_length = summation([test_input['lemma'][0]*logarithm(44)] + noise_penalties)
         model,l = compressionLoop(lambda m: "",description_length,verbose = False,enforce_structure = False)
+        print 
         assert model != 'FAIL'
-        model = solver.model()
+        model = get_recent_model()
         likelihood += l
         # check if we passed the test
-        print exception
-        print model
-        for e in exception:
-            print e, exception[e]
-            print model[exception[e]]
         exception = any([extract_bool(model,exception[e]) == 'True' for e in exception ])
-        if exception: print "Passed %s" % test[0]
+        if not exception: print "Passed %s" % test[0]
         else: print "Failed %s" % test[0]
-        pop_solver()
     print likelihood
 
-programs = train_on_matrix(sparse_lexicon(N))
-testing_likelihood(programs)
-sys.exit(0)
-
-observations = sample_corpus(N,None,True)
-latexTable(observations)
-
-# only keep the relevant tenses
-observations = [ [observation[t] for t in tenses ] for observation in observations ]
-#observations = [[o] for o in unsupervised ]
-observations = [[o] for o in aboriginal ]
-N = len(observations)
-
-maximum_length = max([len(w.split(' ')) for ws in observations for w in ws ])
-
-# for each tense, a different rule
-programs = [ generator(3,'CONDITIONAL') for j in range(TENSES) ]
-
-# Push a frame to hold all of the training data
-push_solver()
-
-inputs = [ {'lemma': morpheme() }
-           for j in range(N) ]
-for j in range(N):
-    inputs[j]['last'] = last_one(inputs[j]['lemma'])
-
-
-noise_penalties = []
-for t in range(TENSES):
-    for n in range(N):
-        o = programs[t][0](inputs[n])
-        cs = constrain_phonemes(o, observations[n][t])
-        constrain(cs)
-#       noise_penalties.append(If(And(*cs),
-#                                  0.0,
-#                                  -logarithm(epsilon)+logarithm(44)*len(observations[n][t].split(' '))))
-
-flat_stems = [ v['lemma'] for v in inputs ]
-stem_length = summation([logarithm(44)*s[0] for s in flat_stems ])
-
-def printer(m):
-    
-    model = ""
-    for t in range(TENSES):
-        model += "Tense %i: %s\n" % (t,programs[t][2](m))
-        model += "\tProgram description length: %f\n" % extract_real(m,programs[t][1])
-    model += "\n"
-    for j in range(N):
-        model += "lemma = %s\n" % extract_string(m,inputs[j]['lemma'])
-    print "Stem length: %f\n" % extract_real(m,stem_length)
-    return model
-
-
-total = summation(noise_penalties + [p[1] for p in programs ] + [stem_length])
-
-
-
-if compressionLoop(printer,total)[0] == 'FAIL':
-    print 'FAIL\n0.0',
-else:
-    solver = get_solver()
-    
-    test_data = verbs
-    successes = 0
-    likelihood = 0.0
-    for test in test_data:
-        test = [test[t] for t in tenses ]
-        maximum_length = max([len(w.split(' ')) for w in test])
-        push_solver()
-        test_input = {'lemma': morpheme() }
-        test_input['last'] = last_one(test_input['lemma'])
-        for j in range(TENSES):
-            o = programs[j][0](test_input)
-            constrain(constrain_phonemes(o, test[j]))
-        if str(solver.check()) == 'sat':
-            print 'Passed test lemma %s for %s' % (extract_string(solver.model(),test_input['lemma']),
-                                                   test)
-            successes += 1
-            likelihood += logarithm(44)*extract_int(solver.model(),test_input['lemma'][0])
-        else:
-            print 'FAILURE: %s' % str(test)
-            likelihood += -logarithm(epsilon)+logarithm(44)*maximum_length
-        pop_solver()
-    print float(successes)/float(len(test_data)), likelihood,
+if __name__ == '__main__':
+    N = int(sys.argv[1])
+    programs = train_on_matrix(unsupervised_matrix)#(sample_corpus(N))#(sparse_lexicon(N))
+    #testing_likelihood(programs)
