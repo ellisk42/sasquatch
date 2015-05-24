@@ -19,6 +19,7 @@ def view(i):
     too_big = i > 255
     i = 255*too_big + i*(1-too_big)
     pylab.figure()
+    pylab.axis('off')
     pylab.imshow(i,cmap = pylab.gray())
     plt.savefig('/tmp/parse_view.png')
     os.system('feh /tmp/parse_view.png')
