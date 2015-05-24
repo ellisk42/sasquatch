@@ -1065,11 +1065,12 @@ unsupervised_matrix = [(w,1,w) for w in unsupervised ]
 aboriginal = [s+' '+s for s in albright ]
 
 
-def sparse_lexicon(N):
+def sparse_lexicon(N,t = None):
+    if t == None:
+        return sparse_lexicon(N,0)+sparse_lexicon(N,1)+sparse_lexicon(N,2)+sparse_lexicon(N,5)
     observations = []
     while len(observations) < N:
         w = random.sample(verbs,1)[0]
-        t = random.sample([0,1,2,5],1)[0]
         o = (w[0],t,w[t])
         if not o in observations:
             observations.append(o)
