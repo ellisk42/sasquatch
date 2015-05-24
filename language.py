@@ -289,7 +289,7 @@ def testing_likelihood(programs):
         print 
         assert model != 'FAIL'
         model = get_recent_model()
-        likelihood += l
+        likelihood -= l
         # check if we passed the test
         exception = any([extract_bool(model,exception[e]) == 'True' for e in exception ])
         if not exception: print "Passed %s" % test[0]
@@ -299,4 +299,4 @@ def testing_likelihood(programs):
 if __name__ == '__main__':
     N = int(sys.argv[1])
     programs = train_on_matrix(unsupervised_matrix)#(sample_corpus(N))#(sparse_lexicon(N))
-    #testing_likelihood(programs)
+    testing_likelihood(programs)
