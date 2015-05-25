@@ -577,7 +577,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["p r @ d I k t","p r @ d I k t @ d","p r @ d I k t I N","p r @ d I k t @ d","p r @ d I k t","p r @ d I k t s"],
          ["h @ n t","h @ n t @ d","h @ n t I N","h @ n t @ d","h @ n t","h @ n t s"],
          ["t r \\ae n s f 0 r m","t r \\ae n s f 0 r m d","t r \\ae n s f 0 r m I N","t r \\ae n s f 0 r m d","t r \\ae n s f 0 r m","t r \\ae n s f 0 r m z"],
-         ["t r E m b @ l","t r E m b @ l d","t r E m b @ l I N","t r E m b @ l d","t r E m b @ l","t r e m b l e s"],
+         ["t r E m b @ l","t r E m b @ l d","t r E m b @ l I N","t r E m b @ l d","t r E m b @ l","t r E m b @ l z"],
          ["k @ n s t r @ k t","k @ n s t r @ k t @ d","k @ n s t r @ k t I N","k @ n s t r @ k t @ d","k @ n s t r @ k t","k @ n s t r @ k t s"],
          ["l a j n","l a j n d","l a j n I N","l a j n d","l a j n","l a j n z"],
          ["s t r E N T @ n","s t r E N T @ n d","s t r E N T @ n I N","s t r E N T @ n d","s t r E N T @ n","s t r E N T @ n z"],
@@ -1078,6 +1078,22 @@ def sparse_lexicon(N,t = None):
         print "[%s]\t%i\t[%s]" % (s,t,o)
     return observations
 
+def coupled_sparsity(N):
+    s = random.sample(verbs,N)
+    observations = []
+    for r in s:
+        ts = random.sample([0,1,2,5],2)
+        for t in ts:
+            observations.append((r[0],t,r[t]))
+        for t in [0,1,2,5]:
+            if t in ts:
+                print r[t], '&',
+            else:
+                print '&',
+        print '\\\\'
+    return observations
+    
+        
 
 if __name__ == "__main__":
     for (s,t,o) in sorted(sparse_lexicon(30)):

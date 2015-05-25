@@ -296,5 +296,9 @@ def testing_likelihood(programs):
 
 if __name__ == '__main__':
     N = int(sys.argv[1])
-    programs = train_on_matrix(sparse_lexicon(N))#(unsupervised_matrix)#(sample_corpus(N))
+    models = {'sparse': sparse_lexicon,
+              'lexicon': sample_corpus,
+              'coupled': coupled_sparsity}
+    model = models[sys.argv[2]]
+    programs = train_on_matrix(model(N))
     testing_likelihood(programs)
