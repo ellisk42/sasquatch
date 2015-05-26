@@ -13,9 +13,9 @@ def tipa(web):
                    (u"\u03b8",'T'),
                    (u"\u025b",'E'),
                    (u"\u028a",'U'),
-                   (u"\u0251",'a'),
+                   (u"\u0251",'A'),
                    (u"\u0283",'S'),
-                   (u"\u0254",'0'),
+                   (u"\u0254",'O'),
                    (u"\u0292",'Z')]
     result = []
     for w in web:
@@ -34,7 +34,7 @@ if False:
     print '[' + ','.join([ '"' + tipa(phonetics[inflection]).encode('unicode-escape') + '"'
                            for inflection in practice ]) + '],'
     os.exit()
-if True:
+if False:
     practice = ["a n a l y s e","a n a l y s e d","a n a l y s i n g","a n a l y s e d","a n a l y s e"]
     practice = [ p.replace(' ','').replace('analys','analyz') for p in practice ]
     phonetics = ipa.ipa(practice)
@@ -68,8 +68,9 @@ for stem in bad_stems:
     del conjugations[stem]
 
 lemma_popularity = sorted([ (-lemma_popularity[l],l) for l in lemma_popularity.keys() ])
-N = 0
+N = 1000
 stems = [ s[1] for s in lemma_popularity[:N] ]
+print stems
 
 for stem in stems:
     vs = sorted(conjugations[stem].keys())
@@ -78,5 +79,5 @@ for stem in stems:
     print '[' + ','.join([ '"' + tipa(phonetics[inflection]).encode('unicode-escape') + '"'
                            for inflection in inflections ]) + '],'
 
-print ','.join([ "'" + tipa(ipa.ipa(i)[i]).encode('unicode-escape') + "'" for i in irregular ])
+
     

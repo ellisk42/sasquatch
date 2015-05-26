@@ -14,7 +14,7 @@ epsilon = 0.1
 ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', 'D': 'PD', 'R': 'PR', 't': 'Pt',
              'd': 'Pd', 'n': 'Pn', 'r': 'Pr', 's': 'Ps', 'z': 'Pz', 'l': 'Pl', 'S': 'PS', 'Z': 'PZ', 'j': 'Pj',
              'k': 'Pk', 'w': 'Pw', 'g': 'Pg', 'N': 'PN', 'P': 'PP', 'h': 'Ph', 'i': 'Pi', 'I': 'PI', 'e': 'Pe',
-             'E': 'PE', '@': 'P@', '2': 'P2', 'A': 'PA', 'a': 'Pa', '5': 'P5', '0': 'P0', 'o': 'Po', 'U': 'PU',
+             'E': 'PE', '@': 'P@', '2': 'P2', 'A': 'PA', 'a': 'Pa', '5': 'P5', 'O': 'PO', 'o': 'Po', 'U': 'PU',
              'u': 'Pu', '\\ae': 'PQ'
              }
 char2ipa = {}

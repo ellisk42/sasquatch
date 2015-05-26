@@ -8,9 +8,9 @@ import urllib
 import urllib2
 from bs4 import BeautifulSoup
 
-phoneme_code = {'AO': 'a', 'AA': 'a', 'IY': 'i', 'UW': 'u', 'EH': 'E', 'IH': 'I',
-                'UH': 'U', 'AH': todo}
-
+#phoneme_code = {'AO': 'a', 'AA': 'a', 'IY': 'i', 'UW': 'u', 'EH': 'E', 'IH': 'I',
+#                'UH': 'U', 'AH': todo}
+'''
 def load_pronunciations():
     p = {}
     with open('cmudict-0.7b','r') as f:
@@ -21,6 +21,7 @@ def load_pronunciations():
             pieces = [ x for x in l.strip().split(' ') if len(x) > 0 ]
             p[pieces[0]] = ' '.join([ phoneme_code[x] for x in pieces[1:] ])
             return p
+'''
 
 URL= "http://upodn.com/phon.asp"
 
