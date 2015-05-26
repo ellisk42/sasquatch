@@ -24,8 +24,6 @@ tiny_threshold = 50
 # how different two things can be and still count is rescaled versions
 rescale_threshold = 3.06
 
-# how different two things can be and still count as rotations
-rotate_threshold = 4
 
 class Shape():
     def __init__(self,mask):
@@ -38,7 +36,6 @@ class Shape():
         self.merge_borders = []
         self.name = None
         self.scale = 1.0
-        self.orientation = 0
         
         self.outline = mask_outline(mask)
         
@@ -46,7 +43,8 @@ class Shape():
         
     def same_shape(self,other):
         d = np.logical_xor(self.centered,other.centered)
-        return np.sum(d) < 1
+        d = np.sum(d)
+        return d < 10
     def rescaled_shape(self,other):
         if self.mass > other.mass:
             return other.rescaled_shape(self)
@@ -56,14 +54,6 @@ class Shape():
                             for n in neighbor_matrices(o) ])
         r = float(differences)/math.sqrt(self.mass)
         return r < rescale_threshold
-    def rotated_shape(self,other):
-        return None
-        if self.mass > other.mass:
-            return other.rotated_shape(self)
-        f = math.sqrt(float(self.mass) / float(other.mass))
-        o = scale_mask(other.centered,f)
-        return rotation_equals(self.centered,o,
-                               threshold = rotate_threshold)
     def contains_other(self,other):
         return mask_subset(other.mask,self.mask)
     def touches(self,other):
@@ -121,6 +111,12 @@ def connected_components(i):
         i = i*(1-s) + s*(j+1)
 
     i = replace(i,BACKGROUND,-1)
+    if False:
+        cs = [center_mask(s)[2]     for s in shapes]
+        view(cs[1])
+        view(cs[3])
+        view(np.logical_xor(cs[1],cs[3]))
+
     # claim remaining borders
     modified = True
     while modified:
@@ -135,16 +131,18 @@ def connected_components(i):
                     if new != 0:
                         modified = True
                         i[x,y] = new
-#                        fill(i,x,y,0,new)
-                    # try diagonals
-                    new = max(i[x-1,y-1],
-                              i[x-1,y+1],
-                              i[x+1,y-1],
-                              i[x+1,y+1])
-                    if new != 0:
-                        modified = True
-                        i[x,y] = new
-
+        if not modified:
+            for x in range(1,w-1):
+                for y in range(1,h-1):
+                    if i[x,y] == 0:
+                        # try diagonals
+                        new = max(i[x-1,y-1],
+                                  i[x-1,y+1],
+                                  i[x+1,y-1],
+                                  i[x+1,y+1])
+                        if new != 0:
+                            modified = True
+                            i[x,y] = new
     # pull the shapes out of the picture again
     for j in range(len(shapes)):
         shapes[j] = fill_center(i == (j+1))
@@ -215,72 +213,68 @@ def analyze(filename):
         if to_remove:
             changed = True
             shapes.remove(to_remove)
-    if True:
+    if False:
         i[:] = WHITE
         for j,s in enumerate(shapes):
             s = s.mask
             i = i*(1-s) + (j+2)*s
-        view(i*50)
+        view(i*30)
 
     ns = len(shapes)
-    # labeled the shapes
-    labeled = []
-    next_label = 1
+
+    # equivalence classes of identical shapes
+    identical = {}
     for s in shapes:
-        for l in labeled:
-            if l.same_shape(s):
-                s.name = l.name
-                s.scale = l.scale
-                s.orientation = l.orientation
-                break
-        if not s.name:
-            # see if this is a rescaling of a different shape
-            for l in labeled:
-                if s.rescaled_shape(l):
-                    s.name = l.name
-                    s.orientation = l.orientation
-                    if s.mass < l.mass:
-                        s.scale = float(s.mass)/float(l.mass)
-                    else:
-                        for lp in labeled:
-                            if lp.name == s.name:
-                                lp.scale = float(lp.mass)/float(s.mass)
-                    break
-        if not s.name:
-            # see if this is a rotation of a different shape
-            for l in labeled:
-                r = s.rotated_shape(l)
-                if r == None: continue
-                print "rotated shape"
-                s.name = l.name
-                if s.mass < l.mass:
-                    s.orientation = r
-                    s.scale = float(s.mass)/float(l.mass)
+        new_class = True
+        for j,k in identical.items():
+            if new_class:
+                for sp in k:
+                    if s.same_shape(sp):
+                        k.append(s)
+                        new_class = False
+                        break
+        if new_class:
+            identical[len(identical)] = [s]
+    equivalent_mass = {}
+    for j,k in identical.items():
+        equivalent_mass[j] = float(sum([s.mass for s in k ]))/len(k)
+
+    next_label = 1
+    for i,ki in identical.items():
+        i_name = None
+        for j in range(i):
+            # is class i a rescaling of class j?
+            rescaling = any([ s.rescaled_shape(sp) 
+                              for s in ki
+                              for sp in identical[j] ])
+            if rescaling:
+                # take their name
+                i_name = identical[j][0].name
+                ratio = equivalent_mass[i]/equivalent_mass[j]
+                if ratio < 1.0:
+                    for s in ki: s.scale = ratio
                 else:
-                    r = 360-r
-                    for lp in labeled:
-                        if  lp.name == s.name:
-                            lp.orientation = r
-                            lp.scale = float(lp.mass)/float(s.mass)
+                    for s in identical[j]: s.scale = 1.0/ratio
                 break
-        if not s.name:
-            s.name = next_label
+        if i_name == None:
+            i_name = next_label
             next_label += 1
-        labeled.append(s)
+        for s in ki:
+            s.name = i_name
     # build output string
     os = []
     for s in shapes:
-        os.append("Shape(%i,%i,%i,%f,%i)" % (s.x,s.y,s.name,s.scale,s.orientation))
+        os.append("Shape(%i,%i,%i,%f)" % (s.x,s.y,s.name,s.scale))
     os = ','.join(os)
     os = os + "\n"
     for s in xrange(0,ns):
         for sp in xrange(0,ns):
             if shapes[sp] in shapes[s].contains:
-                os = os + "contains(" + str(s) + ", " + str(sp) + ");\n"
+                os = os + "contains(" + str(s) + ", " + str(sp) + ")\n"
     for s in xrange(0,ns):
         for sp in xrange(0,ns):
             if s < sp and shapes[sp] in shapes[s].borders:
-                os = os + "borders(" + str(s) + ", " + str(sp) + ");\n"
+                os = os + "borders(" + str(s) + ", " + str(sp) + ")\n"
     return os
 
     
