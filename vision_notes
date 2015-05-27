@@ -78,3 +78,50 @@ three shapes in a line; either all the same shape are all different shapes
 23: T
 three shapes; one is big the others small. [class 0: one inside, one outside] [class 1: either both inside or both outside]
 
+
+
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 1 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 2 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 3 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 4  3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+python collect_vision_task.py 5 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+python collect_vision_task.py 6 3 10
+[1, 1, 1, 0, 1, 0, 0.5, 0.5, 0.5, 0.5, 1, 0, 0.5, 0.5, 0.5, 0.5, 1, 0, 0.5, 0.5]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 7 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+python collect_vision_task.py 8 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 9 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+python collect_vision_task.py 10 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 11 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 12 3 10
+[0.5, 1, 0.5, 0.5, 0.5, 0.5, 1, 1, 0.5, 0.5, 1, 1, 0, 0, 0, 1, 0, 0, 0.5, 0.5]
+python collect_vision_task.py 13 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+python collect_vision_task.py 14 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 15 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 16 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[1, 0, 0, 1, 0, 1, 0, 1, 0.5, 0.5, 1, 1, 1, 1, 1, 1, 0, 1, 0.5, 0.5]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 18 3 10
+[1, 1, 1, 1, 1, 0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 19 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 20 3 10
+[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+python collect_vision_task.py 21 3 10
+[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+python collect_vision_task.py 22 3 10
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+ellisk@sketch2:~/sasquatch$ python collect_vision_task.py 23 3 10
+[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
