@@ -6,7 +6,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["h \\ae v","h \\ae d","h \\ae v I N","h \\ae v d","h \\ae v","h \\ae v z"],
          ["d u","d i d s t","d u I N","d @ n","d 5 T","d @ z"],
          ["s e","s E d","s e I N","s E d","s e","s E z"],
-         ["k \\ae n","c o u l d s t","k \\ae n I N","k \\ae n d","k \\ae n","k \\ae n"],
+         ["k \\ae n","k U d s t","k \\ae n I N","k \\ae n d","k \\ae n","k \\ae n"],
          ["w I l","w U d","w I l I N","w I l d","w I l","w I l"],
          ["g o","g o e d","g o I N","g 5 n","g o","g o z"],
          ["g E t","g A t","g E t I N","g A t","g E t","g E t s"],
@@ -133,7 +133,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["d @ s k r a j b","d @ s k r a j b d","d @ s k r a j b I N","d @ s k r a j b d","d @ s k r a j b","d @ s k r a j b z"],
          ["s m a j l","s m a j l d","s m a j l I N","s m a j l d","s m a j l","s m a j l z"],
          ["k r i e t","k r i e t @ d","k r i e t I N","k r i e t @ d","k r i e t","k r i e t s"],
-         ["T r o","t h r o w e d","T r o I N","T r o n","T r o","T r o z"],
+         ["T r o","T r o d","T r o I N","T r o n","T r o","T r o z"],
          ["r @ s i v","r @ s i v d","r @ s i v I N","r @ s i v d","r @ s i v","r @ s i v z"],
          ["w I n","w @ n","w I n I N","w @ n","w I n","w I n z"],
          ["p r u v","p r u v d","p r u v I N","p r u v d","p r u v","p r u v z"],
@@ -213,7 +213,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["h I t","h I t","h I t I N","h I t","h I t","h I t s"],
          ["p r E z @ n t","p r i z E n t @ d","p r @ z E n t I N","p r i z E n t @ d","p r E z @ n t","p r E z @ n t s"],
          ["t r i t","t r i t @ d","t r i t I N","t r i t @ d","t r i t","t r i t s"],
-         ["@ d m I t","@ d m I t @ d","\\ae d m I t I N","@ d m I t @ d","@ d m I t","@ d m I t s"],
+         ["\\ae d m I t","\\ae d m I t @ d","\\ae d m I t I N","\\ae d m I t @ d","\\ae d m I t","\\ae d m I t s"],
          ["w @ r i","w @ r i d","w @ r i I N","w @ r i d","w @ r i","w @ r i z"],
          ["f l a j","f l u","f l a j I N","f l a j d","f l a j","f l a j z"],
          ["m e n t e n","m e n t e n d","m e n t e n I N","m e n t e n d","m e n t e n","m e n t e n z"],
@@ -271,7 +271,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["g \\ae D @ r","g \\ae D @ r d","g \\ae D @ r I N","g \\ae D @ r d","g \\ae D @ r","g \\ae D @ r z"],
          ["p r A m @ s","p r A m @ s t","p r A m @ s I N","p r A m @ s t","p r A m @ s","p r A m @ s @ z"],
          ["k r 5 s","k r 5 s t","k r 5 s I N","k r 5 s t","k r 5 s","k r 5 s @ z"],
-         ["r i p l e s","r i p l e s t","r @ p l e s I N","r i p l e s t","r i p l e s","r @ p l e s @ z"],
+         ["r i p l e s","r i p l e s t","r i p l e s I N","r i p l e s t","r i p l e s","r i p l e s @ z"],
          ["I n d @ k e t","I n d @ k e t @ d","I n d @ k e t I N","I n d @ k e t @ d","I n d @ k e t","I n d I k e t s"],
          ["f I t","f I t @ d","f I t I N","f I t @ d","f I t","f I t s"],
          ["@ t E n d","@ t E n d @ d","@ t E n d I N","@ t E n d @ d","@ t E n d","@ t E n d z"],
@@ -297,7 +297,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["h @ r t","h @ r t @ d","h @ r t I N","h @ r t","h @ r t","h @ r t s"],
          ["d Z @ m p","d Z @ m p t","d Z @ m p I N","d Z @ m p t","d Z @ m p","d Z @ m p s"],
          ["h \\ae n d @ l","h \\ae n d @ l d","h \\ae n d l I N","h \\ae n d @ l d","h \\ae n d @ l","h \\ae n d @ l z"],
-         ["k A m b a j n","k @ m b a j n d","k @ m b a j n I N","k @ m b a j n d","k A m b a j n","k @ m b a j n z"],
+         ["k A m b a j n","k A m b a j n d","k A m b a j n I N","k A m b a j n d","k A m b a j n","k A m b a j n z"],
          ["s @ k s i d","s @ k s i d @ d","s @ k s i d I N","s @ k s i d @ d","s @ k s i d","s @ k s i d z"],
          ["r @ p i t","r @ p i t @ d","r @ p i t I N","r @ p i t @ d","r @ p i t","r @ p i t s"],
          ["w e k","w o k","w e k I N","w o k @ n","w e k","w e k s"],
@@ -395,7 +395,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["g l \\ae n s","g l \\ae n s t","g l \\ae n s I N","g l \\ae n s t","g l \\ae n s","g l \\ae n s @ z"],
          ["p @ z E s","p @ z E s t","p @ z E s I N","p @ z E s t","p @ z E s","p @ z E s @ z"],
          ["s m E l","s m E l d","s m E l I N","s m E l d","s m E l","s m E l z"],
-         ["s u t","s u t @ d","s u i t i n g","s u t @ d","s u t","s u t s"],
+         ["s u t","s u t @ d","s u t I N","s u t @ d","s u t","s u t s"],
          ["d @ f E n d","d @ f E n d @ d","d @ f E n d I N","d @ f E n d @ d","d @ f E n d","d @ f E n d z"],
          ["h E d","h E d @ d","h E d I N","h E d @ d","h E d","h E d z"],
          ["s w I m","s w \\ae m","s w I m I N","s w @ m","s w I m","s w I m z"],
@@ -668,7 +668,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["w O r m","w O r m d","w O r m I N","w O r m d","w O r m","w O r m z"],
          ["I n s p a j r","I n s p a j @ r d","I n s p a j r I N","I n s p a j @ r d","I n s p a j r","I n s p a j r z"],
          ["p @ r s I s t","p @ r s I s t @ d","p @ r s I s t I N","p @ r s I s t @ d","p @ r s I s t","p @ r s I s t s"],
-         ["@ n d @ r l a j","u n d e r l a y","@ n d @ r l a j I N","u n d e r l a i n","@ n d @ r l a j","@ n d @ r l a j z"],
+         ["@ n d @ r l a j","@ n d @ r l e","@ n d @ r l a j I N","u n d e r l a i n","@ n d @ r l a j","@ n d @ r l a j z"],
          ["@ r a w z","@ r a w z d","@ r a w z I N","@ r a w z d","@ r a w z","@ r a w z @ z"],
          ["k @ m j u n @ k e t","k @ m j u n @ k e t @ d","k @ m j u n @ k e t I N","k @ m j u n @ k e t @ d","k @ m j u n @ k e t","k @ m j u n I k e t s"],
          ["s @ b m I t","s @ b m I t @ d","s @ b m I t I N","s @ b m I t @ d","s @ b m I t","s @ b m I t s"],
@@ -702,7 +702,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["s p A t","s p A t @ d","s p A t I N","s p A t @ d","s p A t","s p A t s"],
          ["i z","i z d","i z I N","i z d","i z","i z @ z"],
          ["\\ae n @ l A j z","\\ae n @ l A j z d","\\ae n @ l A j z I N","\\ae n @ l A j z d","\\ae n @ l A j z","\\ae n @ l A j z"],
-         ["f o k @ s","f o k @ s t","f o k @ s I N","f o k @ s t","f o k @ s","f o c u s s e s"],
+         ["f o k @ s","f o k @ s t","f o k @ s I N","f o k @ s t","f o k @ s","f o k @ s @ z"],
          ["t e s t","t e s t @ d","t e s t I N","t e s t @ d","t e s t","t e s t s"],
          ["o v @ r l U k","o v @ r l U k t","o v @ r l U k I N","o v @ r l U k t","o v @ r l U k","o v @ r l U k s"],
          ["p r A d Z E k t","p r @ d Z E k t @ d","p r @ d Z E k t I N","p r @ d Z E k t @ d","p r A d Z E k t","p r A d Z E k t s"],
@@ -754,7 +754,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["k @ n s i v","k @ n s i v d","k @ n s i v I N","k @ n s i v d","k @ n s i v","k @ n s i v z"],
          ["n @ g o S i e t","n @ g o S i e t @ d","n @ g o S i e t I N","n @ g o S i e t @ d","n @ g o S i e t","n I g o S i e t s"],
          ["s t r I p","s t r I p t","s t r I p I N","s t r I p t","s t r I p","s t r I p s"],
-         ["d E k @ r e t","d E k @ r e t @ d","d E k @ r e t I N","d E k @ r e t @ d","d E k @ r e t","d e c o r a t e s"],
+         ["d E k @ r e t","d E k @ r e t @ d","d E k @ r e t I N","d E k @ r e t @ d","d E k @ r e t","d E k @ r e t s"],
          ["s e l","s e l d","s e l I N","s e l d","s e l","s e l z"],
          ["s t r e n","s t r e n d","s t r e n I N","s t r e n d","s t r e n","s t r e n z"],
          ["b @ t r e","b @ t r e d","b @ t r e I N","b @ t r e d","b @ t r e","b @ t r e z"],
@@ -813,7 +813,7 @@ verbs = [["b i","w a s t","b i I N","b I n","\\ae m","I z"],
          ["s p E l","s p E l d","s p E l I N","s p E l d","s p E l","s p E l z"],
          ["s @ s p E n d","s @ s p E n d @ d","s @ s p E n d I N","s @ s p E n d @ d","s @ s p E n d","s @ s p E n d z"],
          ["@ n d @ r g o","@ n d @ r w E n t","@ n d @ r g o I N","@ n d @ r g 5 n","@ n d @ r g o","@ n d @ r g o z"],
-         ["s I v @ l A j z","s I v @ l A j z d","s I v @ l A j z I N","s I v @ l A j z d","s I v @ l A j z","c i v i l i z e s"],
+         ["s I v @ l A j z","s I v @ l A j z d","s I v @ l A j z I N","s I v @ l A j z d","s I v @ l A j z","s I v @ l A j z @ z"],
          ["m @ r m @ r","m @ r m @ r d","m @ r m @ r I N","m @ r m @ r d","m @ r m @ r","m @ r m @ r z"],
          ["k w A l @ f A j","k w A l @ f A j d","k w A l @ f A j I N","k w A l @ f A j d","k w A l @ f A j","k w A l @ f A j z"],
          ["s k r u","s k r u d","s k r u I N","s k r u d","s k r u","s k r u z"],
@@ -1016,21 +1016,18 @@ def sample_corpus(n,l = None):
     return observations
     
 
-def latexTable(words):
-    print '''
-\\begin{table}[h]
-\\begin{tabular}{lllllll}
-Meaning & Present & Past & Progressive & Perfect & Future & 3rd Person \\
-'''
-    for word in words:
-        for i in word:
-            print "&\\textipa{%s}" % i,
+def latexTable(observations):
+    table = {}
+    for stem,inflection,inflected in observations:
+        table[stem] = table.get(stem , {})
+        table[stem][inflection] = inflected
+    for stem in table:
+        for t in range(6):
+            if t in table[stem]:
+                print "&\\textipa{%s}" % table[stem][t],
+            else:
+                print "&",
         print "\\\\"
-    print '''
-\\end{tabular}
-\\end{table}
-'''
-
 
 
 minimal_pairs = [["p e","p e d","p e I N","p e d","p e","p e z"],
@@ -1055,11 +1052,6 @@ albright = ["b a j z",
 
 unsupervised = ["n i d @ d","w @ r k t","p l e d","w e t @ d","\\ae d @ d","E n d @ d","\\ae k t @ d","p a p t","r 0 r d"]
 unsupervised_matrix = [(w,1,w) for w in unsupervised ]
-
-#unsupervised = [x[1] for x in minimal_pairs ] + ["n i d @ d","p l e d","\\ae k t @ d"]*2
-
-
-aboriginal = [s+' '+s for s in albright ]
 
 
 def sparse_lexicon(N,t = None):
