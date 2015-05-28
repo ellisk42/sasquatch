@@ -33,7 +33,7 @@ place_table = { 'LABIAL': 'p b f v m w',
                 'CORONAL': 'r t d T D s z S Z n l',
                 'DORSAL': 'k g h j N' }
 Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
-voice_table = { 'VOICED': 'b m v D R r d w n z Z j l g N i I e E @ 2 A a 5 0 o U u \\ae',
+voice_table = { 'VOICED': 'b m v D R r d w n z Z j l g N i I e E @ 2 A a 5 O o U u \\ae',
                 'UNVOICED': 'p f T t s S P h k'}
 Manner, manners = EnumSort('Manner', ('NoManner','STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
 manner_table = { 'STOP': 'p b t d k g',
@@ -51,24 +51,26 @@ maximum_length = 9
 
 def morpheme():
     l = integer()
-#    constrain(l < maximum_length+1)
     constrain(l > -1)
     ps = [ Const(new_symbol(), Phoneme) for j in range(maximum_length) ]
     return tuple([l]+ps)
 
 
-def extract_string(m, v):
+def extract_string(m, v, tipa = True):
     rv = ""
     l = m[v[0]].as_long()
     ps = list(v)[1:]
     for j in range(l):
         c = str(m[ps[j]])
         cp = char2ipa[c]
-        if cp[0] == '\\':
+        if cp[0] == '\\' or not tipa:
             rv += cp + " "
         else:
             rv += cp
-    return "\\textipa{%s}" % rv
+    if tipa:
+        return "\\textipa{%s}" % rv
+    else:
+        return ''.join(rv.replace('\\ae','Q').split(' '))
 
 # returns a list of constraints required for equality to hold
 def constrain_phonemes(ps,correct):
@@ -103,7 +105,6 @@ def concatenate(p,q):
     maxQ = len(q)
     
     constrain(lr == lp+lq)
-#    constrain(lr < maximum_length+1)
     
     for j in range(maximum_length):
         if j < maxP:
@@ -282,16 +283,25 @@ def testing_likelihood(programs):
             noise_penalties.append(If(Not(exception[t]),
                                       0.0,
                                       -logarithm(epsilon) + logarithm(44)*inflection_length))
-#            constrain(cs)
         description_length = summation([test_input['lemma'][0]*logarithm(44)] + noise_penalties)
         model,l = compressionLoop(lambda m: "",description_length,verbose = False,enforce_structure = False)
         assert model != 'FAIL'
         model = get_recent_model()
         likelihood -= l
         # check if we passed the test
-        exception = any([extract_bool(model,exception[e]) == 'True' for e in exception ])
-        if not exception: print "Passed %s" % test[0]
+        exception = dict([(e,extract_bool(model,exception[e]) == 'True') for e in exception ])
+        if not any(exception.values()): print "Passed %s" % test[0]
         else: print "Failed %s" % test[0]
+        # stemming
+        stem = extract_string(model,test_input['lemma'], tipa = False)
+        for t in programs:
+            flattened_test = ''.join(test[t].replace('\\ae','Q').split(' '))
+            if exception[t]: print flattened_test
+            else: 
+                if flattened_test == stem: print stem
+                else:
+                    suffix = flattened_test[len(stem):]
+                    print stem,'+',suffix
     print "LIKELIHOOD",likelihood
 
 if __name__ == '__main__':
@@ -300,5 +310,7 @@ if __name__ == '__main__':
               'lexicon': sample_corpus,
               'coupled': coupled_sparsity}
     model = models[sys.argv[2]]
-    programs = train_on_matrix(model(N))
+    training = model(N)
+    latexTable(training)
+    programs = train_on_matrix(training)
     testing_likelihood(programs)
