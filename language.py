@@ -315,6 +315,7 @@ if __name__ == '__main__':
               'lexicon': sample_corpus,
               'coupled': coupled_sparsity,
               'minimal': minimal_pairs}
+    print 'Using %s' % sys.argv[2]
     model = models[sys.argv[2]]
     training = model(N)
     latexTable(training)
