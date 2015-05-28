@@ -59,9 +59,12 @@ def morpheme():
 def extract_string(m, v, tipa = True):
     rv = ""
     l = m[v[0]].as_long()
+    if l > maximum_length:
+        l = maximum_length
     ps = list(v)[1:]
     for j in range(l):
-        c = str(m[ps[j]])
+        p = ps[j]
+        c = str(m[p])
         cp = char2ipa[c]
         if cp[0] == '\\' or not tipa:
             rv += cp + " "
@@ -244,10 +247,11 @@ def train_on_matrix(observations):
             inputs[stem] = {'lemma': stems[stem],
                             'last': last_one(stems[stem])}
         cs = constrain_phonemes(programs[t][0](inputs[stem]),inflected)
-        inflectional_length = len(inflected.split(' '))
-        noise_penalties.append(If(cs,
+        inflection_length = len(inflected.split(' '))
+        penalty = logarithm(44)*inflection_length - logarithm(epsilon)
+        noise_penalties.append(If(And(cs),
                                   0.0,
-                                  logarithm(44)*inflection_length))
+                                  penalty))
 #        constrain(cs)
     flat_stems = [ inputs[i]['lemma'] for i in inputs ]
     stem_length = [logarithm(44)*s[0] for s in flat_stems ]
@@ -314,7 +318,7 @@ if __name__ == '__main__':
     models = {'sparse': sparse_lexicon,
               'lexicon': sample_corpus,
               'coupled': coupled_sparsity,
-              'minimal': minimal_pairs}
+              'minimal': lambda n: minimal_pairs[0:n]}
     print 'Using %s' % sys.argv[2]
     model = models[sys.argv[2]]
     training = model(N)
