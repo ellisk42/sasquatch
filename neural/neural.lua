@@ -4,14 +4,6 @@ require 'optim'
 
 P = 11
 number_classes = 2
-
-opt = {batchSize = 200,
-       momentum = 0,
-       learningRate = 0.05}
-
-image_length = 32
-geometry = {image_length,image_length}
-
 model = nn.Sequential()
 
 function convolution_length(ol,f)
@@ -23,30 +15,67 @@ function pooling_length(ol,p)
 end
 
 
-model:add(nn.SpatialConvolutionMM(1, 32, 5, 5))
-l = convolution_length(image_length,5) -- l = dimension of the images at current layer
-model:add(nn.Tanh())
-model:add(nn.SpatialMaxPooling(3, 3, 3, 3))
-l = pooling_length(l,3)
--- stage 2 : mean suppresion -> filter bank -> squashing -> max pooling
-model:add(nn.SpatialConvolutionMM(32, 64, 5, 5))
-l = convolution_length(l,5)
-model:add(nn.Tanh())
-model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
-l = pooling_length(l,2)
--- stage 3 : standard 2-layer MLP:
-model:add(nn.Reshape(64*l*l))
-model:add(nn.Linear(64*l*l, 200))
-model:add(nn.Tanh())
-model:add(nn.Linear(200, 2))
-model:add(nn.LogSoftMax())
+opt = {batchSize = 10,
+       momentum = 0,
+       learningRate = 0.05}
+
+architecture = 'Alex' --  'LeNet'
+
+if architecture == 'LeNet' then
+   image_length = 28
+   -- convolution followed by Max pooling
+   model:add(nn.SpatialConvolutionMM(1, 20, 5, 5))
+   l = convolution_length(image_length,5) -- l = dimension of the images at current layer
+   model:add(nn.ReLU())
+   model:add(nn.SpatialMaxPooling(2,2,2,2))
+   l = pooling_length(l,2)
+   -- convolution followed by Max pooling
+   model:add(nn.SpatialConvolutionMM(20, 50, 5, 5))
+   l = convolution_length(l,5)
+   model:add(nn.ReLU())
+   model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
+   l = pooling_length(l,2)
+   -- fully connected, one hidden layer
+   model:add(nn.Reshape(50*l*l))
+   model:add(nn.Linear(50*l*l, 500))
+   model:add(nn.ReLu())
+   model:add(nn.Linear(500, 2))
+   model:add(nn.LogSoftMax())
+elseif architecture == 'Alex' then
+   image_length = 256
+   model:add(nn.SpatialConvolution(1, 96, 11, 11, 4, 4))
+   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
+   model:add(nn.SpatialConvolutionMM(96, 256, 5, 5, 1, 1))
+   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
+   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   model:add(nn.SpatialConvolutionMM(256, 512, 3, 3, 1, 1))
+   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   model:add(nn.SpatialConvolutionMM(512, 1024, 3, 3, 1, 1))
+   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   model:add(nn.SpatialConvolutionMM(1024, 1024, 3, 3, 1, 1))
+   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
+   model:add(nn.SpatialConvolutionMM(1024, 3072, 6, 6, 1, 1))
+   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.SpatialConvolutionMM(3072, 4096, 1, 1, 1, 1))
+   model:add(nn.Threshold(0, 1e-6))
+   -- 2 instead of 1000 because we only have two classes
+   model:add(nn.SpatialConvolutionMM(4096, 2, 1, 1, 1, 1))
+   model:add(nn.View(2))
+   model:add(nn.LogSoftMax())
+
+end
 
 parameters,gradParameters = model:getParameters()
 
 criterion = nn.ClassNLLCriterion()
 confusion = optim.ConfusionMatrix(number_classes)
 
-
+geometry = {image_length,image_length}
 
 -- training function
 function train(dataset)
@@ -183,7 +212,7 @@ end
 
 
 training = {}
-maximum_index = 100
+maximum_index = 10
 function training:size() return 2*maximum_index end
 for j = 1, maximum_index do 
    training[j] = {load_image(P,1,j-1),1}

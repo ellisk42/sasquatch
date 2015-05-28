@@ -1,3 +1,4 @@
+import sys
 import os
 from corpus import *
 import celex
@@ -5,9 +6,12 @@ import celex
 
 lexicon = celex.load_celex()
 
-os.system('python corpus.py > /tmp/phonetic_lexicon')
-os.system('morfessor  -t /tmp/phonetic_lexicon -S /tmp/segmentation')
-
+if sys.argv[1] == 'baseline':
+    os.system('python corpus.py > /tmp/phonetic_lexicon')
+    os.system('morfessor  -t /tmp/phonetic_lexicon -S /tmp/segmentation -d ones')
+    segmentation_file = '/tmp/segmentation'
+else:
+    segmentation_file = sys.argv[1]
 
 attempts = 0
 correct = 0
@@ -28,13 +32,17 @@ def correct_explanation(morphemes,suffix,transform):
         return False
     return False
 
-with open('/tmp/segmentation') as f:
+with open(segmentation_file) as f:
     for l in f:
         if l[0] == '#':
             continue
         l = l.strip()
         # remove frequency
-        l = ' '.join(l.split(' ')[1:])
+        l = l.split(' ')
+        if l[0].isdigit():
+            l = ' '.join(l[1:])
+        else:
+            l = ' '.join(l)
         
         attempts += 1
         

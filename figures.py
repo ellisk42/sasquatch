@@ -59,7 +59,7 @@ accuracy_matrix = np.array([human_success,program_success,feature_success,boost_
 
 print program_success
 covariance = np.corrcoef(accuracy_matrix)
-print covariance
+print [ math.sqrt(rs) for rs in covariance[0,:] ]
 
 
 def scatter_frequencies(observations,color):
