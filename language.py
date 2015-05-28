@@ -309,6 +309,7 @@ if __name__ == '__main__':
     models = {'sparse': sparse_lexicon,
               'lexicon': sample_corpus,
               'coupled': coupled_sparsity}
+    print 'Using %s' % sys.argv[2]
     model = models[sys.argv[2]]
     training = model(N)
     latexTable(training)
