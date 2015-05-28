@@ -237,17 +237,22 @@ def train_on_matrix(observations):
     # one stem for each form
     stems = {}
     inputs = {}
+    noise_penalties = []
     for (stem,t,inflected) in observations:
         if not (stem in stems):
             stems[stem] = morpheme()
             inputs[stem] = {'lemma': stems[stem],
                             'last': last_one(stems[stem])}
         cs = constrain_phonemes(programs[t][0](inputs[stem]),inflected)
-        constrain(cs)
+        inflectional_length = len(inflected.split(' '))
+        noise_penalties.append(If(cs,
+                                  0.0,
+                                  logarithm(44)*inflection_length))
+#        constrain(cs)
     flat_stems = [ inputs[i]['lemma'] for i in inputs ]
     stem_length = [logarithm(44)*s[0] for s in flat_stems ]
     program_length = [programs[p][1] for p in programs ]
-    description_length = summation(stem_length + program_length)
+    description_length = summation(stem_length + program_length + noise_penalties)
     
     def printer(m):
         model = ""
@@ -308,7 +313,8 @@ if __name__ == '__main__':
     N = int(sys.argv[1])
     models = {'sparse': sparse_lexicon,
               'lexicon': sample_corpus,
-              'coupled': coupled_sparsity}
+              'coupled': coupled_sparsity,
+              'minimal': minimal_pairs}
     model = models[sys.argv[2]]
     training = model(N)
     latexTable(training)

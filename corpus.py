@@ -1037,7 +1037,7 @@ minimal_pairs = [["p e","p e d","p e I N","p e d","p e","p e z"],
                  ["b \\ae n","b \\ae n d","b \\ae n I N","b \\ae n d","b \\ae n","b \\ae n z"],
                  ["p a p","p a p t","p a p I N","p a p t","p a p","p a p s"],
                  ["p U S","p U S t","p U S I N","p U S t","p U S","p U S @ z"]]
-
+minimal_pairs = [ (w[0],t,w[t]) for w in minimal_pairs for t in range(6) ]
 
 albright = ["b a j z",
             "d a j z",
