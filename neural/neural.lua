@@ -2,7 +2,7 @@ require 'nn'
 require 'image'
 require 'optim'
 
-P = 11
+P = 1
 number_classes = 2
 model = nn.Sequential()
 
@@ -15,11 +15,11 @@ function pooling_length(ol,p)
 end
 
 
-opt = {batchSize = 10,
+opt = {batchSize = 100,
        momentum = 0,
        learningRate = 0.05}
 
-architecture = 'Alex' --  'LeNet'
+architecture = 'LeNet' --  'LeNet'
 
 if architecture == 'LeNet' then
    image_length = 28
@@ -199,7 +199,7 @@ function test(dataset)
    confusion:zero()
 end
 function load_image(problem,class,index)
-   local filename = string.format('../svrt/results_problem_%i/sample_%i_%04i.png', problem, class, index)
+   local filename = string.format('neural_data_%i/sample_%i_%04i.png', problem, class, index)
    local img_raw = image.load(filename,1)
    local i = image.scale(img_raw,geometry[1],geometry[2])
    i = -i
@@ -207,12 +207,11 @@ function load_image(problem,class,index)
    return i
 end
 
--- load and preprocess images
 
 
 
 training = {}
-maximum_index = 10
+maximum_index = 1000
 function training:size() return 2*maximum_index end
 for j = 1, maximum_index do 
    training[j] = {load_image(P,1,j-1),1}

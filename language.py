@@ -249,7 +249,9 @@ def train_on_matrix(observations):
         cs = constrain_phonemes(programs[t][0](inputs[stem]),inflected)
         inflection_length = len(inflected.split(' '))
         penalty = logarithm(44)*inflection_length - logarithm(epsilon)
-        noise_penalties.append(If(And(cs),
+        regular = boolean()
+        constrain(Implies(regular,And(cs)))
+        noise_penalties.append(If(regular,
                                   0.0,
                                   penalty))
 #        constrain(cs)
