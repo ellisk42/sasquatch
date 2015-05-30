@@ -46,6 +46,7 @@ if architecture == 'LeNet' then
    model:add(nn.Linear(500, 2))
    model:add(nn.LogSoftMax())
 elseif architecture == 'Alex' then
+   image_length = 128
    model:add(nn.SpatialConvolution(1, 96, 11, 11, 4, 4))
    
    model:add(nn.Threshold(0, 1e-6))
@@ -91,6 +92,7 @@ function train(dataset)
    if opt.batchSize > dataset:size() then 
       opt.batchSize = dataset:size()
    end
+   local shuffled = torch.randperm(dataset:size())
    for t = 1,dataset:size(),opt.batchSize do
       -- create mini batch
       local inputs = torch.Tensor(opt.batchSize,1,geometry[1],geometry[2])
@@ -98,7 +100,7 @@ function train(dataset)
       local k = 1
       for i = t,math.min(t+opt.batchSize-1,dataset:size()) do
          -- load new sample
-         local sample = dataset[i]
+         local sample = dataset[shuffled[i]]
          local input = sample[1]:clone():reshape(1,geometry[1],geometry[2])
          local target = sample[2]
          inputs[k] = input
@@ -230,7 +232,7 @@ for j = 1, maximum_index do
 end
 
 
-for e = 1,1000 do 
+for e = 1,300 do 
    train(training)
    test(testing)
 end
