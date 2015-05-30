@@ -2,7 +2,7 @@ require 'nn'
 require 'image'
 require 'optim'
 
-P = 1
+P = arg[1]
 number_classes = 2
 model = nn.Sequential()
 
@@ -38,7 +38,7 @@ if architecture == 'LeNet' then
    -- fully connected, one hidden layer
    model:add(nn.Reshape(50*l*l))
    model:add(nn.Linear(50*l*l, 500))
-   model:add(nn.ReLu())
+   model:add(nn.ReLU())
    model:add(nn.Linear(500, 2))
    model:add(nn.LogSoftMax())
 elseif architecture == 'Alex' then
