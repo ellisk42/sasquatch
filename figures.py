@@ -55,7 +55,7 @@ savefig('comparison.png')
 
 feature_success = [np.average(f) for f in feature_accuracies ]
 program_success = [np.average(np.array(a)) for a in program_accuracies ]
-accuracy_matrix = np.array([human_success,program_success,feature_success,boost_success])
+accuracy_matrix = np.array([human_success,program_success,feature_success,boost_success,digit_accuracies])
 
 print program_success
 covariance = np.corrcoef(accuracy_matrix)
@@ -74,19 +74,20 @@ def scatter_frequencies(observations,color):
             frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
     x = [ h for ((h,a),f) in frequencies.iteritems() ]
     y = [ a for ((h,a),f) in frequencies.iteritems() ]
-    area = [ f*10 for ((h,a),f) in frequencies.iteritems() ]
+    area = [ f*f*10 for ((h,a),f) in frequencies.iteritems() ]
     return scatter(x,y,s = area,alpha = 0.5,color = color)
 
 figure()
 
-pi = scatter_frequencies(program_accuracies,'r')
 b = scatter_frequencies(boost_success,'b')
-f = scatter_frequencies(feature_accuracies,'g')
+f = scatter_frequencies(feature_success,'g')
+pi = scatter_frequencies(program_success,'r')
+le = scatter_frequencies(digit_accuracies,'y')
 xlabel('Human accuracy')
 ylabel('Machine accuracy')
 
 
-legend((pi,f,b),('Program induction (3 examples)', 'Features (3 examples)', 'Boosting (10000 examples)'),loc = 'lower right')
+legend((pi,f,b,le),('Program induction (3 examples)', 'Features (3 examples)', 'Boosting (10000 examples)','LeNet (100 examples)'),loc = 'lower right')
 
 show()
 savefig('scatter.png')
