@@ -19,12 +19,16 @@ opt = {batchSize = 100,
        momentum = 0,
        learningRate = 0.05}
 
-architecture = 'LeNet' --  'LeNet'
+
+architecture =  'LeNet'
+--architecture = 'Alex'
+
+image_length = 28
+
 
 if architecture == 'LeNet' then
-   image_length = 28
    -- convolution followed by Max pooling
-   model:add(nn.SpatialConvolutionMM(1, 20, 5, 5))
+   model:add(nn.SpatialConvolutionMM(1, 20, 5,5))
    l = convolution_length(image_length,5) -- l = dimension of the images at current layer
    model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(2,2,2,2))
@@ -42,8 +46,8 @@ if architecture == 'LeNet' then
    model:add(nn.Linear(500, 2))
    model:add(nn.LogSoftMax())
 elseif architecture == 'Alex' then
-   image_length = 256
    model:add(nn.SpatialConvolution(1, 96, 11, 11, 4, 4))
+   
    model:add(nn.Threshold(0, 1e-6))
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
    model:add(nn.SpatialConvolutionMM(96, 256, 5, 5, 1, 1))
@@ -61,10 +65,6 @@ elseif architecture == 'Alex' then
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
    model:add(nn.SpatialConvolutionMM(1024, 3072, 6, 6, 1, 1))
    model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.SpatialConvolutionMM(3072, 4096, 1, 1, 1, 1))
-   model:add(nn.Threshold(0, 1e-6))
-   -- 2 instead of 1000 because we only have two classes
-   model:add(nn.SpatialConvolutionMM(4096, 2, 1, 1, 1, 1))
    model:add(nn.View(2))
    model:add(nn.LogSoftMax())
 
@@ -88,6 +88,9 @@ function train(dataset)
    -- do one epoch
    print('<trainer> on training set:')
    print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
+   if opt.batchSize > dataset:size() then 
+      opt.batchSize = dataset:size()
+   end
    for t = 1,dataset:size(),opt.batchSize do
       -- create mini batch
       local inputs = torch.Tensor(opt.batchSize,1,geometry[1],geometry[2])
@@ -195,6 +198,7 @@ function test(dataset)
    -- print confusion matrix
    print(confusion)
    print(confusion.totalValid * 100)
+   testing_accuracy = (confusion.totalValid * 100)
    print('% mean class accuracy (test set)')
    confusion:zero()
 end
@@ -204,6 +208,9 @@ function load_image(problem,class,index)
    local i = image.scale(img_raw,geometry[1],geometry[2])
    i = -i
    i = i+1
+   if index == 1 then
+      image.save(index..'rescaled.png',i)
+   end
    return i
 end
 
@@ -212,14 +219,20 @@ end
 
 training = {}
 maximum_index = 1000
+testing = {}
 function training:size() return 2*maximum_index end
+function testing:size() return 2*maximum_index end
 for j = 1, maximum_index do 
    training[j] = {load_image(P,1,j-1),1}
    training[j+maximum_index] = {load_image(P,0,j-1),2}
+   testing[j] = {load_image(P,1,maximum_index+j-1),1}
+   testing[j+maximum_index] = {load_image(P,0,maximum_index+j-1),2}
 end
 
 
-for e = 1,100 do 
+for e = 1,1000 do 
    train(training)
---   test(training)
+   test(testing)
 end
+
+print('TESTING('..P..','..testing_accuracy..')')
