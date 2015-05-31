@@ -16,7 +16,7 @@ function pooling_length(ol,p)
 end
 
 
-opt = {batchSize = 100,
+opt = {batchSize = 10,
        momentum = 0,
        learningRate = 0.05}
 
@@ -58,25 +58,29 @@ elseif architecture == 'Alex' then
    model:add(nn.Threshold(0, 1e-6))
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
    l = pooling_length(l,2)
---   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   l = l + 2
    model:add(nn.SpatialConvolutionMM(256, 512, 3, 3, 1, 1))
    l = convolution_length(l,3)
    model:add(nn.Threshold(0, 1e-6))
---   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   l = l + 2
    model:add(nn.SpatialConvolutionMM(512, 1024, 3, 3, 1, 1))
    l = convolution_length(l,3)
    model:add(nn.Threshold(0, 1e-6))
---   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   l = l + 2
    model:add(nn.SpatialConvolutionMM(1024, 1024, 3, 3, 1, 1))
    l = convolution_length(l,3)
    model:add(nn.Threshold(0, 1e-6))
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
    l = pooling_length(l,2)
-   model:add(nn.SpatialConvolutionMM(1024, 3072, 6, 6, 1, 1))
-   l = convolution_length(l,6)
+--   model:add(nn.SpatialConvolutionMM(1024, 3072, 6, 6, 1, 1))
+--   l = convolution_length(l,6)
+--   print(l)
    model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.Reshape(3072*l*l))
-   model:add(nn.Linear(3072*l*l,2))
+   model:add(nn.Reshape(1024*l*l))
+   model:add(nn.Linear(1024*l*l,2))
    model:add(nn.LogSoftMax())
 end
 
@@ -229,7 +233,7 @@ end
 
 
 training = {}
-maximum_index = 1000
+maximum_index = 100
 testing = {}
 function training:size() return 2*maximum_index end
 function testing:size() return 2*maximum_index end
