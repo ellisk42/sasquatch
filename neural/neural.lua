@@ -16,7 +16,7 @@ function pooling_length(ol,p)
 end
 
 
-opt = {batchSize = 10,
+opt = {batchSize = 100,
        momentum = 0,
        learningRate = 0.05}
 
@@ -48,39 +48,40 @@ if architecture == 'LeNet' then
    model:add(nn.LogSoftMax())
 elseif architecture == 'Alex' then
    image_length = 128
-   model:add(nn.SpatialConvolution(1, 96, 11, 11, 4, 4))
+   model:add(nn.SpatialConvolutionMM(1, 96, 11, 11, 4, 4))
    l = convolution_length(image_length,11,4)
-   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
    l = pooling_length(l,2)
    model:add(nn.SpatialConvolutionMM(96, 256, 5, 5, 1, 1))
    l = convolution_length(l,5)
-   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
    l = pooling_length(l,2)
-   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
-   l = l + 2
-   model:add(nn.SpatialConvolutionMM(256, 512, 3, 3, 1, 1))
+--   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+--   l = l + 2
+   model:add(nn.SpatialConvolutionMM(256, 384, 3, 3, 1, 1))
    l = convolution_length(l,3)
-   model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
-   l = l + 2
-   model:add(nn.SpatialConvolutionMM(512, 1024, 3, 3, 1, 1))
-   l = convolution_length(l,3)
-   model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
-   l = l + 2
-   model:add(nn.SpatialConvolutionMM(1024, 1024, 3, 3, 1, 1))
-   l = convolution_length(l,3)
-   model:add(nn.Threshold(0, 1e-6))
+   model:add(nn.ReLU())
+--   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+--   l = l + 2
+--   model:add(nn.SpatialConvolutionMM(384, 384, 3, 3, 1, 1))
+--    l = convolution_length(l,3)
+--    model:add(nn.ReLU())
+--   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+--   l = l + 2
+--   model:add(nn.SpatialConvolutionMM(384, 256, 3, 3, 1, 1))
+--   l = convolution_length(l,3)
+--   model:add(nn.ReLU())
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
    l = pooling_length(l,2)
+   print(l)
 --   model:add(nn.SpatialConvolutionMM(1024, 3072, 6, 6, 1, 1))
 --   l = convolution_length(l,6)
 --   print(l)
-   model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.Reshape(1024*l*l))
-   model:add(nn.Linear(1024*l*l,2))
+--   model:add(nn.ReLu())
+   model:add(nn.Reshape(384*l*l))
+   model:add(nn.Linear(384*l*l,2))
    model:add(nn.LogSoftMax())
 end
 
@@ -160,7 +161,7 @@ function train(dataset)
       optim.sgd(feval, parameters, sgdState)
       
       -- disp progress
-      xlua.progress(t, dataset:size())
+      -- xlua.progress(t, dataset:size())
 
    end
    
@@ -185,7 +186,7 @@ function test(dataset)
    print('<trainer> on testing Set:')
    for t = 1,dataset:size(),opt.batchSize do
       -- disp progress
-      xlua.progress(t, dataset:size())
+      -- xlua.progress(t, dataset:size())
       -- create mini batch
       local inputs = torch.Tensor(opt.batchSize,1,geometry[1],geometry[2])
       local targets = torch.Tensor(opt.batchSize)
@@ -233,7 +234,7 @@ end
 
 
 training = {}
-maximum_index = 100
+maximum_index = 1000
 testing = {}
 function training:size() return 2*maximum_index end
 function testing:size() return 2*maximum_index end
