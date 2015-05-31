@@ -6,8 +6,9 @@ P = arg[1]
 number_classes = 2
 model = nn.Sequential()
 
-function convolution_length(ol,f)
-   return ol-f+1
+function convolution_length(ol,f,d)
+   d = d or 1
+   return math.floor((ol-f)/d+1)
 end
 
 function pooling_length(ol,p)
@@ -20,8 +21,8 @@ opt = {batchSize = 100,
        learningRate = 0.05}
 
 
-architecture =  'LeNet'
---architecture = 'Alex'
+--architecture =  'LeNet'
+architecture = 'Alex'
 
 image_length = 28
 
@@ -48,27 +49,35 @@ if architecture == 'LeNet' then
 elseif architecture == 'Alex' then
    image_length = 128
    model:add(nn.SpatialConvolution(1, 96, 11, 11, 4, 4))
-   
+   l = convolution_length(image_length,11,4)
    model:add(nn.Threshold(0, 1e-6))
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
+   l = pooling_length(l,2)
    model:add(nn.SpatialConvolutionMM(96, 256, 5, 5, 1, 1))
+   l = convolution_length(l,5)
    model:add(nn.Threshold(0, 1e-6))
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
-   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+   l = pooling_length(l,2)
+--   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
    model:add(nn.SpatialConvolutionMM(256, 512, 3, 3, 1, 1))
+   l = convolution_length(l,3)
    model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+--   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
    model:add(nn.SpatialConvolutionMM(512, 1024, 3, 3, 1, 1))
+   l = convolution_length(l,3)
    model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
+--   model:add(nn.SpatialZeroPadding(1, 1, 1, 1))
    model:add(nn.SpatialConvolutionMM(1024, 1024, 3, 3, 1, 1))
+   l = convolution_length(l,3)
    model:add(nn.Threshold(0, 1e-6))
    model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
+   l = pooling_length(l,2)
    model:add(nn.SpatialConvolutionMM(1024, 3072, 6, 6, 1, 1))
+   l = convolution_length(l,6)
    model:add(nn.Threshold(0, 1e-6))
-   model:add(nn.View(2))
+   model:add(nn.Reshape(3072*l*l))
+   model:add(nn.Linear(3072*l*l,2))
    model:add(nn.LogSoftMax())
-
 end
 
 parameters,gradParameters = model:getParameters()
