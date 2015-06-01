@@ -65,26 +65,29 @@ print [ math.sqrt(rs) for rs in covariance[0,:] ]
 def scatter_frequencies(observations,color,t,x_labels,y_labels):
     frequencies = {}
     matrix = []
+    ys = []
     for p in range(23):
         h = human_success[p]
         if isinstance(observations[p],list):
             for a in observations[p]:
                 frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
                 matrix.append([h,a])
+                ys.append(a)
         else:
             a = observations[p]
             matrix.append([h,a])
             frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
+            ys.append(a)
     x = [ h for ((h,a),f) in frequencies.iteritems() ]
     y = [ a for ((h,a),f) in frequencies.iteritems() ]
     area = [ f*f*10 for ((h,a),f) in frequencies.iteritems() ]
     covariance = np.corrcoef(np.array(matrix).T)
     r = math.sqrt(covariance[0,1])
     r = round(r,2)
-    text(0.45,0.8,"r=%.2f"%r,fontsize = 10)
+    text(0.35,0.95,"r=%.2f"%r,fontsize = 10)
     title(t,fontsize = 10)
-    tick_places = np.arange(0.4,1.1,0.1)
-    tick_names = ['0.4'] + ['']*5 + ['1']
+    tick_places = np.arange(0.3,1.1,0.1)
+    tick_names = ['0.3'] + ['']*6 + ['1']
     s = scatter(x,y,s = area,alpha = 0.5,color = color)
     if x_labels:
         xticks(tick_places,tick_names,fontsize = 10)
@@ -94,6 +97,11 @@ def scatter_frequencies(observations,color,t,x_labels,y_labels):
         yticks(tick_places,tick_names,fontsize = 10)
     else:
         yticks(tick_places,['']*7,fontsize = 10)
+    a = np.average(ys)
+    print a
+    axhline(y = a,color = 'k',ls = 'dashed')
+    a = len([y for y in ys if y >= 0.9 ])
+    text(0.35,0.35,"solved %i/23" % a,fontsize = 10)
     return s
 
 common = figure(figsize = (4,4))

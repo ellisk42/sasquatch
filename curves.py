@@ -1,4 +1,9 @@
-
+from pylab import *
+import math
+import numpy as np
+import numpy.numarray as na
+import random
+from scipy.stats import sem
 
 random_samples_4 = [(-30834.149000,-32216.535000),
                     (-29940.428000,-32004.778000),
@@ -30,3 +35,21 @@ random_samples_4 = [(-30834.149000,-32216.535000),
                     (-33493.432000,-35633.042000),
                     (-31140.557000,-32087.173000),
                     (-43107.917000,-46151.45500)]
+
+def simulate(random_samples,iterations):
+    l = []
+    for n in range(1000):
+        samples = random.sample(random_samples,iterations)
+        model = max(samples)
+        l.append(model[1])
+    return np.average(l),sem(np.array(l))
+    
+x = np.arange(1,31)
+y = [simulate(random_samples_4,i) for i in range(1,31) ]
+v = [j[1] for j in y ]
+y = np.array([j[0] for j  in y ])
+
+figure()
+errorbar(x,y,yerr = v)
+show()
+savefig('random.png')
