@@ -274,12 +274,12 @@ def train_on_matrix(observations):
     return programs
 
 
-def testing_likelihood(programs):
+def testing_likelihood(programs,held_out,data_name):
     global maximum_length
     minimum_maximum = maximum_length
     solver = get_solver()
     likelihood = 0.0
-    for test in verbs:
+    for test in held_out:
         push_solver()
         maximum_length = max([len(test[t].split(' ')) for t in programs ] + [minimum_maximum])
         test_input = {'lemma': morpheme() }
@@ -313,7 +313,7 @@ def testing_likelihood(programs):
                 else:
                     suffix = flattened_test[len(stem):]
                     print stem,'+',suffix
-    print "LIKELIHOOD",likelihood
+    print "%sLIKELIHOOD:%f" % (data_name,likelihood)
 
 if __name__ == '__main__':
     N = int(sys.argv[1])
@@ -321,9 +321,11 @@ if __name__ == '__main__':
               'lexicon': sample_corpus,
               'coupled': coupled_sparsity,
               'minimal': lambda n: minimal_pairs[0:n]}
+    training,test = split_lexicon()
     print 'Using %s' % sys.argv[2]
     model = models[sys.argv[2]]
-    training = model(N)
-    latexTable(training)
-    programs = train_on_matrix(training)
-    testing_likelihood(programs)
+    random_sample = model(N,training)
+    latexTable(random_sample)
+    programs = train_on_matrix(random_sample)
+    testing_likelihood(programs,training,'TRAIN')
+    testing_likelihood(programs,test,'TEST')

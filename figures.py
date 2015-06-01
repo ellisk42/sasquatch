@@ -62,32 +62,62 @@ covariance = np.corrcoef(accuracy_matrix)
 print [ math.sqrt(rs) for rs in covariance[0,:] ]
 
 
-def scatter_frequencies(observations,color):
+def scatter_frequencies(observations,color,t,x_labels,y_labels):
     frequencies = {}
+    matrix = []
     for p in range(23):
         h = human_success[p]
         if isinstance(observations[p],list):
             for a in observations[p]:
                 frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
+                matrix.append([h,a])
         else:
             a = observations[p]
+            matrix.append([h,a])
             frequencies[(h,a)] = 1 + frequencies.get((h,a),0)
     x = [ h for ((h,a),f) in frequencies.iteritems() ]
     y = [ a for ((h,a),f) in frequencies.iteritems() ]
     area = [ f*f*10 for ((h,a),f) in frequencies.iteritems() ]
-    return scatter(x,y,s = area,alpha = 0.5,color = color)
+    covariance = np.corrcoef(np.array(matrix).T)
+    r = math.sqrt(covariance[0,1])
+    r = round(r,2)
+    text(0.45,0.8,"r=%.2f"%r,fontsize = 10)
+    title(t,fontsize = 10)
+    tick_places = np.arange(0.4,1.1,0.1)
+    tick_names = ['0.4'] + ['']*5 + ['1']
+    s = scatter(x,y,s = area,alpha = 0.5,color = color)
+    if x_labels:
+        xticks(tick_places,tick_names,fontsize = 10)
+    else:
+        xticks(tick_places,['']*7,fontsize = 10)
+    if y_labels:
+        yticks(tick_places,tick_names,fontsize = 10)
+    else:
+        yticks(tick_places,['']*7,fontsize = 10)
+    return s
 
-figure()
+common = figure(figsize = (4,4))
+subplot(221)
+pi = scatter_frequencies(program_success,'r','Program synthesis',
+                         False,True)
+subplot(222)
+le = scatter_frequencies(digit_accuracies,'y','ConvNet',
+                         False,False)
+subplot(223)
+b = scatter_frequencies(boost_success,'b','Image features',
+                        True,True)
+subplot(224)
+f = scatter_frequencies(feature_success,'g','Parse features',
+                        True,False)
+#xlabel('Human accuracy')
+#ylabel('Machine accuracy')
+common.text(0.5,0.035,'Human accuracy',
+            ha = 'center',va = 'center',fontsize = 10)
+common.text(0.035,0.5,'Machine accuracy',
+            ha = 'center',va = 'center',rotation = 'vertical',
+            fontsize = 10)
 
-b = scatter_frequencies(boost_success,'b')
-f = scatter_frequencies(feature_success,'g')
-pi = scatter_frequencies(program_success,'r')
-le = scatter_frequencies(digit_accuracies,'y')
-xlabel('Human accuracy')
-ylabel('Machine accuracy')
-
-
-legend((pi,f,b,le),('Program induction (3 examples)', 'Features (3 examples)', 'Boosting (10000 examples)','LeNet (100 examples)'),loc = 'lower right')
+#legend((pi,f,b,le),('Program induction (3 examples)', 'Features (3 examples)', 'Boosting (10000 examples)','LeNet (100 examples)'),loc = 'lower right')
 
 show()
 savefig('scatter.png')
