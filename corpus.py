@@ -1019,13 +1019,8 @@ def sample_corpus(n,v = None):
 def split_lexicon():    
     s = random.getstate()
     random.seed(0)
-    training = []
-    test = []
-    for inflections in verbs:
-        if random.random() > 0.5:
-            training.append(inflections)
-        else:
-            test.append(inflections)
+    training = random.sample(verbs,len(verbs)/2)
+    test = [ i for i in verbs if not i in training ]
     random.setstate(s)
     return training,test
 
