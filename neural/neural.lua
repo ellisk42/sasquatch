@@ -2,6 +2,8 @@ require 'nn'
 require 'image'
 require 'optim'
 
+torch.setnumthreads(3)
+
 P = arg[1]
 number_classes = 2
 model = nn.Sequential()
@@ -21,7 +23,7 @@ opt = {batchSize = 100,
        learningRate = 0.05}
 
 
---architecture =  'LeNet'
+architecture =  'LeNet'
 architecture = 'Alex'
 
 image_length = 28
@@ -161,7 +163,7 @@ function train(dataset)
       optim.sgd(feval, parameters, sgdState)
       
       -- disp progress
-      -- xlua.progress(t, dataset:size())
+      xlua.progress(t, dataset:size())
 
    end
    
@@ -186,7 +188,7 @@ function test(dataset)
    print('<trainer> on testing Set:')
    for t = 1,dataset:size(),opt.batchSize do
       -- disp progress
-      -- xlua.progress(t, dataset:size())
+      xlua.progress(t, dataset:size())
       -- create mini batch
       local inputs = torch.Tensor(opt.batchSize,1,geometry[1],geometry[2])
       local targets = torch.Tensor(opt.batchSize)
