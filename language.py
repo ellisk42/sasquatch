@@ -5,6 +5,7 @@ import random
 import sys
 
 from corpus import *
+from lexicon import *
 
 # exception probability
 epsilon = 0.1
@@ -15,7 +16,7 @@ ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', '
              'd': 'Pd', 'n': 'Pn', 'r': 'Pr', 's': 'Ps', 'z': 'Pz', 'l': 'Pl', 'S': 'PS', 'Z': 'PZ', 'j': 'Pj',
              'k': 'Pk', 'w': 'Pw', 'g': 'Pg', 'N': 'PN', 'P': 'PP', 'h': 'Ph', 'i': 'Pi', 'I': 'PI', 'e': 'Pe',
              'E': 'PE', '@': 'P@', '2': 'P2', 'A': 'PA', 'a': 'Pa', '5': 'P5', 'O': 'PO', 'o': 'Po', 'U': 'PU',
-             'u': 'Pu', '\\ae': 'PQ'
+             'u': 'Pu', '\\ae': 'PQ', '3': 'P3'
              }
 char2ipa = {}
 for k in ipa2char:
@@ -28,12 +29,13 @@ for p in phonemes:
     assert not str(p) in z3char
     z3char[str(p)] = p
 
+
 Place, places = EnumSort('Place', ('NoPlace','LABIAL','CORONAL','DORSAL'))
 place_table = { 'LABIAL': 'p b f v m w',
                 'CORONAL': 'r t d T D s z S Z n l',
                 'DORSAL': 'k g h j N' }
 Voicing, voices = EnumSort('Voice', ('VOICED','UNVOICED'))
-voice_table = { 'VOICED': 'b m v D R r d w n z Z j l g N i I e E @ 2 A a 5 O o U u \\ae',
+voice_table = { 'VOICED': 'b m v D R r d w n z Z j l g N i I e E @ 2 A a 5 O o U u \\ae 3',
                 'UNVOICED': 'p f T t s S P h k'}
 Manner, manners = EnumSort('Manner', ('NoManner','STOP','FRICATIVE','NASAL','LIQUID','GLIDE'))
 manner_table = { 'STOP': 'p b t d k g',
