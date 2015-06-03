@@ -75,6 +75,16 @@ def simulate(random_samples,iterations):
         model = max(samples)
         l.append(model[1])
     return np.average(l),sem(np.array(l))
+
+def simulate_curve(random_samples,c):
+    x = np.arange(1,31)
+    y = []
+    best = (-float('inf'),-float('inf'))
+    for training,test in random.sample(random_samples,len(random_samples)):
+        if training > best[0]:
+            best = (training,test)
+        y.append(best[1])
+    plot(x,np.array(y),'--',color = c,alpha = 0.2)
     
 x = np.arange(1,31)
 y = [simulate(random_samples_4,i) for i in range(1,31) ]
@@ -82,12 +92,18 @@ v = [j[1] for j in y ]
 y = np.array([j[0] for j  in y ])
 
 figure()
-errorbar(x,y,yerr = v)
+#errorbar(x,y,yerr = v)
 
 y = [simulate(random_samples_2,i) for i in range(1,31) ]
 v = [j[1] for j in y ]
 y = np.array([j[0] for j  in y ])
-errorbar(x,y,yerr = v,color = 'r')
+#errorbar(x,y,yerr = v,color = 'r')
 
+
+for j in range(100): simulate_curve(random_samples_4,'r')
+
+for j in range(100): simulate_curve(random_samples_2,'b')
+xlabel('Held-out Log Likelihood')
+ylabel('RANSAC iterations')
 show()
 savefig('random.png')

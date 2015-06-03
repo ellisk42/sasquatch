@@ -1,10 +1,7 @@
 import sys
 import os
-from corpus import *
-import celex
-
-
-lexicon = celex.load_celex()
+from lexicon import *
+import re
 
 if sys.argv[1] == 'baseline':
     os.system('python corpus.py > /tmp/phonetic_lexicon')
@@ -16,9 +13,12 @@ else:
 attempts = 0
 correct = 0
 
-def correct_explanation(morphemes,suffix,transform):
+def correct_explanation(morphemes,suffix):
+    suffix = suffix.replace('@','').replace(' ','')
+    suffix = re.sub(r'-.?','',suffix)
+    print suffix
     if len(morphemes) == 1:
-        return suffix == 'null'
+        return suffix in ['IRR','']
     if len(morphemes) == 2:
         if morphemes[1] == '@d': return suffix == '+d'
         if morphemes[1] == 't': return suffix == '+d' or suffix == '+t'
@@ -53,18 +53,15 @@ with open(segmentation_file) as f:
         
         inflection = ' '.join([c for c in ''.join(morphemes) ]).replace('Q','\\ae')
 
-        for v in range(len(verbs)):
-            lexical_item = lexical_items[v] # what word are we looking at
+        for v in range(len(celex_inflections)):
             candidate_explanations = []
-            for i in range(6):
-                if verbs[v][i] == inflection:
-                    inflection_code = ['VB','VBD','VBG','VBN','VBP','VBZ'][i]
-                    lexical_inflection,suffix,transform = lexicon[lexical_item][inflection_code]
-                    candidate_explanations.append((suffix,transform))
-#            if len(candidate_explanations) > 0:
-#                print morphemes,candidate_explanations
-            if any([correct_explanation(morphemes,suffix,transform) 
-                    for suffix,transform in candidate_explanations ]):
+            for i in range(5):
+                if celex_inflections[v][i] == inflection:
+                       candidate_explanations.append(celex_stem[v][i][1])
+#            if len(candidate_explanations) == 0:
+#                print morphemes,inflection
+            if any([correct_explanation(morphemes,suffix) 
+                    for suffix in candidate_explanations ]):
                 correct += 1
                 break
 #            else:

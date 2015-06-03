@@ -1,0 +1,16 @@
+Using lexicon
+&\textipa{s n 2 f} &\textipa{s n 2 f t} &\textipa{s n 2 f s} &\textipa{s n 2 f t} &\textipa{s n 2 f I N} \\
+&\textipa{r I k l a I n} &\textipa{r I k l a I n d} &\textipa{r I k l a I n z} &\textipa{r I k l a I n d} &\textipa{r I k l a I n I N} \\
+&\textipa{I n T r O l} &\textipa{I n T r O l d} &\textipa{I n T r O l z} &\textipa{I n T r O l d} &\textipa{I n T r O l I N} \\
+&\textipa{s \ae g} &\textipa{s \ae g d} &\textipa{s \ae g z} &\textipa{s \ae g d} &\textipa{s \ae g I N} \\
+&\textipa{d I r E k t} &\textipa{d I r E k t I d} &\textipa{d I r E k t s} &\textipa{d I r E k t I d} &\textipa{d I r E k t I N} \\
+&\textipa{I m p a U @ r} &\textipa{I m p a U @ d} &\textipa{I m p a U @ z} &\textipa{I m p a U @ d} &\textipa{I m p a U @ r I N} \\
+Checking model using Z3...
+Proved unsatisfiable in 19.792394 sec
+Total solver time: 19.792394
+Traceback (most recent call last):
+  File "language.py", line 333, in <module>
+    testing_likelihood(programs,training,'TRAIN')
+  File "language.py", line 302, in testing_likelihood
+    assert model != 'FAIL'
+AssertionError
