@@ -13,22 +13,65 @@ else:
 attempts = 0
 correct = 0
 
+suffixes = {}
 def correct_explanation(morphemes,suffix):
     suffix = suffix.replace('@','').replace(' ','')
     suffix = re.sub(r'-.?','',suffix)
-    print suffix
+    global suffixes
+    suffixes[suffix] = True
+    phonetic_suffix = {'+med': '+d',
+                       '+bed': '+d',
+                       '+ting': '+ing',
+                       '+ed': '+d',
+                       '+zing': '+ing',
+                       '+ned': '+d',
+                       '+ring': '+ing',
+                       '+ming': '+ing',
+                       '+es': '+s',
+                       '+ing': '+ing',
+                       '+ping': '+ing',
+                       '+led': '+d',
+                       '+d': '+d',
+                       '+s': '+s',
+                       '+ving': '+ing',
+                       '+ded': '+d',
+                       '+ved': '+d',
+                       '+ped': '+d',
+                       'IRR': 'IRR',
+                       '+zes': '+s',
+                       '+ling': '+ing',
+                       '+red': '+d',
+                       '+ted': '+d',
+                       '+ding': '+ing',
+                       '+sing': '+ing',
+                       '+zed': '+d',
+                       '+ging': '+ing',
+                       '+ies': '+s',
+                       '+king': '+ing',
+                       '+ning': '+ing',
+                       '+ged': '+d',
+                       '+bing': '+ing',
+                       '+ses': '+s',
+                       '+ked': '+d',
+                       '+ied': '+d',
+                       '+sed': '+d',
+                       '': ''}
+    suffix = phonetic_suffix[suffix]
     if len(morphemes) == 1:
         return suffix in ['IRR','']
     if len(morphemes) == 2:
         if morphemes[1] == '@d': return suffix == '+d'
-        if morphemes[1] == 't': return suffix == '+d' or suffix == '+t'
+        if morphemes[1] == 'Id': return suffix == '+d'
+        if morphemes[1] == 't': return suffix == '+d'
         if morphemes[1] == 'd': return suffix == '+d'
         if morphemes[1] == '@z': return suffix == '+s'
+        if morphemes[1] == 'Iz': return suffix == '+s'
         if morphemes[1] == 's': return suffix == '+s'
         if morphemes[1] == 'z': return suffix == '+s'
         if morphemes[1] == 'IN': return suffix == '+ing'
         if morphemes[1] == 'n': return suffix == '+n'
         if morphemes[1] == '@n': return suffix == '+n'
+        if morphemes[1] == 'In': return suffix == '+n'
         return False
     return False
 
@@ -68,3 +111,5 @@ with open(segmentation_file) as f:
 #                print morphemes,candidate_explanations
 
 print float(correct)/attempts
+#for s in suffixes:
+#    print s

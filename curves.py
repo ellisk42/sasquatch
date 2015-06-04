@@ -5,6 +5,32 @@ import numpy.numarray as na
 import random
 from scipy.stats import sem
 
+random_samples_6 = [(-146815.050000,-146297.207000),
+                    (-191199.638000,-189830.667000),
+                    (-109792.163000,-111531.948000),
+                    (-175461.928000,-171591.675000),
+                    (-125449.886000,-127202.266000),
+                    (-163904.353000,-166883.865000),
+                    (-168943.628000,-169397.129000),
+                    (-206273.895000,-208733.568000),
+                    (-155966.095000,-158906.201000),
+                    (-98512.398000,-100372.281000),
+                    (-175461.928000,-171591.675000),
+                    (-141799.577000,-144813.740000),
+                    (-160914.123000,-160617.598000),
+                    (-125449.886000,-127202.266000),
+                    (-285184.121000,-284281.137000),
+                    (-182630.355000,-177551.636000),
+                    (-164009.614000,-162646.799000),
+                    (-121556.447000,-118624.185000),
+                    (-221062.752000,-220277.987000),
+                    (-116543.917000,-118268.997000),
+                    (-163904.353000,-166883.865000),
+                    (-98512.398000,-100372.281000),
+                    (-104152.243000,-105952.075000),
+                    (-159542.275000,-161283.165000),
+                    (-172791.422000,-171700.387000),
+                    (-141799.577000,-144813.740000)]
 
 random_samples_2 = [(-38506.967000,-40470.292000),
                     (-39648.416000,-42136.766000),
@@ -77,7 +103,7 @@ def simulate(random_samples,iterations):
     return np.average(l),sem(np.array(l))
 
 def simulate_curve(random_samples,c):
-    x = np.arange(1,31)
+    x = np.arange(1,1+len(random_samples))
     y = []
     best = (-float('inf'),-float('inf'))
     for training,test in random.sample(random_samples,len(random_samples)):
@@ -100,10 +126,11 @@ y = np.array([j[0] for j  in y ])
 #errorbar(x,y,yerr = v,color = 'r')
 
 
-for j in range(100): simulate_curve(random_samples_4,'r')
+#for j in range(100): simulate_curve(random_samples_4,'r')
 
-for j in range(100): simulate_curve(random_samples_2,'b')
-xlabel('Held-out Log Likelihood')
-ylabel('RANSAC iterations')
+#for j in range(100): simulate_curve(random_samples_2,'b')
+for j in range(100): simulate_curve(random_samples_6,'b')
+ylabel('Held-out Log Likelihood')
+xlabel('RANSAC iterations')
 show()
 savefig('random.png')
