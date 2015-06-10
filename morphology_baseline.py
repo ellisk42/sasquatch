@@ -5,7 +5,7 @@ import re
 
 if sys.argv[1] == 'baseline':
     os.system('python corpus.py > /tmp/phonetic_lexicon')
-    os.system('morfessor  -t /tmp/phonetic_lexicon -S /tmp/segmentation -d ones')
+    os.system('morfessor --traindata-list -t /tmp/phonetic_lexicon -S /tmp/segmentation')
     segmentation_file = '/tmp/segmentation'
 else:
     segmentation_file = sys.argv[1]
@@ -32,6 +32,8 @@ def correct_explanation(morphemes,suffix):
                        '+ping': '+ing',
                        '+led': '+d',
                        '+d': '+d',
+                       '+n': '+n',
+                       'null': 'null',
                        '+s': '+s',
                        '+ving': '+ing',
                        '+ded': '+d',
@@ -55,14 +57,22 @@ def correct_explanation(morphemes,suffix):
                        '+ked': '+d',
                        '+ied': '+d',
                        '+sed': '+d',
+                       '+t': '+t',
+                       'goent': '',
+                       'bes': '',
+                       'bem': '',
+                       'beere': '',
                        '': ''}
-    suffix = phonetic_suffix[suffix]
+    if suffix in phonetic_suffix:
+        suffix = phonetic_suffix[suffix]
+    else:
+        print suffix
     if len(morphemes) == 1:
-        return suffix in ['IRR','']
+        return suffix in ['IRR','','null']
     if len(morphemes) == 2:
         if morphemes[1] == '@d': return suffix == '+d'
         if morphemes[1] == 'Id': return suffix == '+d'
-        if morphemes[1] == 't': return suffix == '+d'
+        if morphemes[1] == 't': return suffix == '+d' or suffix == '+t'
         if morphemes[1] == 'd': return suffix == '+d'
         if morphemes[1] == '@z': return suffix == '+s'
         if morphemes[1] == 'Iz': return suffix == '+s'
