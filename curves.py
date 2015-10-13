@@ -292,6 +292,7 @@ for j in range(50): simulate_curve(soft_7,'g',j == 1,'7 lexemes')
 ylabel('Heldout Log Likelihood/Lexeme',fontsize = 11)
 xlabel('RANSAC iterations',fontsize = 11)
 ylim([-140, -20])
+xlim([1,12])
 code = [('g','7 lexemes'),
         ('b','6 lexemes'),
         ('y','5 lexemes'),

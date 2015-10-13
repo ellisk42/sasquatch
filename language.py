@@ -18,6 +18,7 @@ ipa2char = { 'p': 'Pp', 'b': 'Pb', 'm': 'Pm', 'f': 'Pf', 'v': 'Pv', 'T': 'PT', '
              'E': 'PE', '@': 'P@', '2': 'P2', 'A': 'PA', 'a': 'Pa', '5': 'P5', 'O': 'PO', 'o': 'Po', 'U': 'PU',
              'u': 'Pu', '\\ae': 'PQ', '3': 'P3'
              }
+
 char2ipa = {}
 for k in ipa2char:
     assert not (ipa2char[k] in char2ipa)
@@ -252,6 +253,7 @@ def train_on_matrix(observations):
         inflection_length = len(inflected.split(' '))
         penalty = logarithm(44)*inflection_length - logarithm(epsilon)
         regular = boolean()
+        constrain(regular)
         constrain(Implies(regular,And(cs)))
         noise_penalties.append(If(regular,
                                   0.0,
@@ -322,7 +324,8 @@ if __name__ == '__main__':
     models = {'sparse': sparse_lexicon,
               'lexicon': sample_corpus,
               'coupled': coupled_sparsity,
-              'minimal': lambda n: minimal_pairs[0:n]}
+              'minimal': lambda n,t: minimal_pairs[0:n]}
+    random.seed(42)
     training,test = split_lexicon()
     print 'Using %s' % sys.argv[2]
     model = models[sys.argv[2]]
