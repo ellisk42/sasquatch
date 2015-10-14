@@ -24,6 +24,10 @@ def get_solver():
     global slv
     return slv
 
+recent_total_time = None
+def get_recent_total_time():
+    global recent_total_time
+    return recent_total_time
 
 next_Jensen = 1
 def new_symbol():
@@ -118,7 +122,10 @@ def conditional(p,q,r):
 
 
 def compressionLoop(pr,mdl,verbose = True,timeout = None,enforce_structure = True):
-    global recent_model
+    global recent_model,recent_total_time
+    constrain(Real("global_cost_function") == mdl)
+    with open('.'.join(sys.argv) + '.smt2','w') as f:
+        f.write(slv.to_smt2())
     if timeout:
         slv.set("timeout",timeout*1000)
     global_start_time = time.time()
@@ -143,6 +150,7 @@ def compressionLoop(pr,mdl,verbose = True,timeout = None,enforce_structure = Tru
             print "Trying for a better one...\n"
     d = (time.time() - start_time)
     solver_time += d
+    recent_total_time = solver_time
     if verbose:
         print "Proved unsatisfiable in %f sec" % d
         print "Total solver time: %f"  % solver_time
@@ -178,6 +186,7 @@ def analyze_rule_recursion():
     dirty_bank = False
     for r in rule_bank.keys():
         primitive_production[r] = not isinstance(rule_bank[r],list)
+    #print primitive_production
     # Go until we reach a fixed point
     changed = True
     while changed:

@@ -96,10 +96,10 @@ def coupled_sparsity(N):
         
 
 if __name__ == "__main__":
-    for inflections in celex_inflections:
+    for i in range(len(celex_inflections)):
 #        if inflections[0] == inflections[4]: continue
 #        print inflections
-        for inflection in inflections:
-            print ''.join(inflection.replace('\\ae','Q').split(' '))
+        for j in range(5):
+            print celex_frequency[i][j],''.join(celex_inflections[i][j].replace('\\ae','Q').split(' '))
 #    for (s,t,o) in sorted(sparse_lexicon(30)):
 #        print "[%s]\t%i\t[%s]" % (s,t,o)

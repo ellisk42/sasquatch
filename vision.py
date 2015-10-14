@@ -117,14 +117,19 @@ def set_degrees_of_freedom(observations):
     
 def move_turtle(x,y,tx,ty,d,ax,ay):
     constrain(d > 0)
-    # compute new angle
+    nx,ny = rotate_turtle(tx,ty,ax,ay)
+    
+    return x+d*nx,y+d*ny,nx,ny
+
+def rotate_turtle(tx,ty,ax,ay):
+    # compute new angle using trig identities
     nx = real()
     ny = real()
     
     constrain(nx == tx*ax-ty*ay)
     constrain(ny == tx*ay+ty*ax)
-    
-    return x+d*nx,y+d*ny,nx,ny
+
+    return nx, ny
 
 def define_grammar(LZ,LP,LD,LA):
     if LD > 0:
@@ -145,24 +150,30 @@ def define_grammar(LZ,LP,LD,LA):
                  lambda m,l: l,
                  lambda i,l: l)
         else:
+            # WARNING: relatively untested new alternate encoding of move command
+            indexed_rule('ORIENTATION-INDEX', 'a', LA,
+                         lambda (t,i): i['angles'])
+                        
             rule('ORIENTATION', [],
                  lambda m: "0deg",
-                 lambda i: (1.0,0.0))
+                 lambda ((x,y,dx,dy),i): (dx,dy))
 
             rule('TURN', [],
                  lambda m: "90deg",
-                 lambda i: (0.0,1.0))
+                 lambda ((x,y,dx,dy),i): (-dy,dx))
             rule('TURN', [],
                  lambda m: "-90deg",
-                 lambda i: (0.0,-1.0))
+                 lambda ((x,y,dx,dy),i): (dy,-dx))
             rule('ORIENTATION',['TURN'],
                  lambda m,t: t,
                  lambda i,t: t)
-            indexed_rule('ORIENTATION', 'a', LA,
-                         lambda (t,i): i['angles'])
+            if LA > 0:
+                rule('ORIENTATION',['ORIENTATION-INDEX'],
+                     lambda m,a: a,
+                     lambda ((x,y,dx,dy),i),(dxp,dyp): rotate_turtle(dx,dy,dxp,dyp))
             rule('LOCATE', ['DISTANCE','ORIENTATION'],
                  lambda m, d, o: "(move %s %s)" % (d,o),
-                 lambda ((x,y,dx,dy),i), d, (dxp,dyp): move_turtle(x,y,dx,dy,d,dxp,dyp))
+                 lambda ((x,y,dx,dy),i), d, (dxp,dyp): (x+d*dxp, y+d*dyp, dxp, dyp))
             indexed_rule('DISTANCE', 'l', LD,
                          lambda (t,i): i['distances'])
     
@@ -321,7 +332,10 @@ def make_new_input(LZ,LA,LD,LP):
 
 def grid_search(observations):
     observations = set_degrees_of_freedom(observations)
-    solutions = []    
+
+    solutions = []
+
+    total_grid_search_time = 0
     for LZ,LA,LD,LP in [(z,a,d,p) for z in [0,1]  for a in [0,1] for d in [0,1,2] for p in range(1,picture_size+1) ]:
         # make sure that the latent dimensions make sense
         if LA > LD: continue
@@ -393,6 +407,7 @@ def grid_search(observations):
 
         if VERBOSE: print "Trying LZ, LA, LD, LP = %i, %i, %i, %i" % (LZ,LA,LD,LP)
         p,m = compressionLoop(full_printer,mdl,timeout = solver_timeout,verbose = VERBOSE)
+        total_grid_search_time += get_recent_total_time()
         if m == None:
             if VERBOSE: print "No solution for LZ, LA, LD, LP = %i, %i, %i, %i" % (LZ,LA,LD,LP)
         else:
@@ -400,6 +415,7 @@ def grid_search(observations):
             kd = extract_real(get_recent_model(),containment_data) if LK > 0 else 0
             bd = extract_real(get_recent_model(),borders_data) if LB > 0 else 0
             solutions.append((m,p,LZ,LA,LD,LP,get_solver(),draw_picture,containment,kd,borders,bd))
+    print 'Total solver time doing grid search:',total_grid_search_time        
     return solutions
 
 

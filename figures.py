@@ -4,6 +4,8 @@ import numpy as np
 import numpy.numarray as na
 from accuracies import *
 
+rcParams.update({'figure.autolayout': True})
+
 interactive(True)
 labels = [str(i) for i in range(1,24) ]
 human_failures = [1,0,0,0,4,12,4,0,3,1,0,2,3,1,2,9,9,3,1,1,7,0,0]
@@ -62,7 +64,7 @@ covariance = np.corrcoef(accuracy_matrix)
 print [ math.sqrt(rs) for rs in covariance[0,:] ]
 
 
-def scatter_frequencies(observations,color,t,x_labels,y_labels):
+def scatter_frequencies(observations,color,t,x_labels,y_labels,offset = 0):
     frequencies = {}
     matrix = []
     ys = []
@@ -80,11 +82,11 @@ def scatter_frequencies(observations,color,t,x_labels,y_labels):
             ys.append(a)
     x = [ h for ((h,a),f) in frequencies.iteritems() ]
     y = [ a for ((h,a),f) in frequencies.iteritems() ]
-    area = [ f*f*10 for ((h,a),f) in frequencies.iteritems() ]
+    area = [ f*20 for ((h,a),f) in frequencies.iteritems() ]
     covariance = np.corrcoef(np.array(matrix).T)
     r = math.sqrt(covariance[0,1])
     r = round(r,2)
-    text(0.35,0.95,"r=%.2f"%r,fontsize = 10)
+    text(0.35,0.95+offset,"r=%.2f"%r,fontsize = 10)
     title(t,fontsize = 10)
     tick_places = np.arange(0.3,1.1,0.1)
     tick_names = ['0.3'] + ['']*6 + ['1']
@@ -107,16 +109,16 @@ def scatter_frequencies(observations,color,t,x_labels,y_labels):
 common = figure(figsize = (4,4))
 subplot(221)
 pi = scatter_frequencies(program_success,'r','Program synthesis',
-                         False,True)
+                         False,True,-0.05)
 subplot(222)
 le = scatter_frequencies(digit_accuracies,'y','ConvNet',
                          False,False)
 subplot(223)
 b = scatter_frequencies(boost_success,'b','Image features',
-                        True,True)
+                        True,True,-0.05)
 subplot(224)
 f = scatter_frequencies(feature_success,'g','Parse features',
-                        True,False)
+                        True,False,+0.05)
 #xlabel('Human accuracy')
 #ylabel('Machine accuracy')
 common.text(0.5,0.035,'Human accuracy',
@@ -129,3 +131,33 @@ common.text(0.035,0.5,'Machine accuracy',
 
 show()
 savefig('scatter.png')
+
+
+figure(figsize = (2,2))
+
+
+al = scatter_frequencies(alex_accuracies,'r','AlexNet variant',
+                         True,True,-0.05)
+xlabel('Human accuracy')
+ylabel('Machine accuracy')
+show()
+savefig('alex.png')
+
+
+figure(figsize = (2,2))
+gcf().subplots_adjust(wspace=1)
+le = scatter_frequencies(digit_accuracies,'y','LeNet Variant',
+                         True,True)
+
+xlabel('Human accuracy')
+ylabel('Machine accuracy')
+show()
+savefig('lenet.png')
+
+#xlabel('Human accuracy')
+#ylabel('Machine accuracy')
+
+#legend((pi,f,b,le),('Program induction (3 examples)', 'Features (3 examples)', 'Boosting (10000 examples)','LeNet (100 examples)'),loc = 'lower right')
+
+
+

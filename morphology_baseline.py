@@ -1,14 +1,11 @@
 import sys
 import os
-from corpus import *
-import celex
-
-
-lexicon = celex.load_celex()
+from lexicon import *
+import re
 
 if sys.argv[1] == 'baseline':
     os.system('python corpus.py > /tmp/phonetic_lexicon')
-    os.system('morfessor  -t /tmp/phonetic_lexicon -S /tmp/segmentation -d ones')
+    os.system('morfessor --traindata-list -t /tmp/phonetic_lexicon -S /tmp/segmentation')
     segmentation_file = '/tmp/segmentation'
 else:
     segmentation_file = sys.argv[1]
@@ -16,19 +13,75 @@ else:
 attempts = 0
 correct = 0
 
-def correct_explanation(morphemes,suffix,transform):
+suffixes = {}
+def correct_explanation(morphemes,suffix):
+    suffix = suffix.replace('@','').replace(' ','')
+    suffix = re.sub(r'-.?','',suffix)
+    global suffixes
+    suffixes[suffix] = True
+    phonetic_suffix = {'+med': '+d',
+                       '+bed': '+d',
+                       '+ting': '+ing',
+                       '+ed': '+d',
+                       '+zing': '+ing',
+                       '+ned': '+d',
+                       '+ring': '+ing',
+                       '+ming': '+ing',
+                       '+es': '+s',
+                       '+ing': '+ing',
+                       '+ping': '+ing',
+                       '+led': '+d',
+                       '+d': '+d',
+                       '+n': '+n',
+                       'null': 'null',
+                       '+s': '+s',
+                       '+ving': '+ing',
+                       '+ded': '+d',
+                       '+ved': '+d',
+                       '+ped': '+d',
+                       'IRR': 'IRR',
+                       '+zes': '+s',
+                       '+ling': '+ing',
+                       '+red': '+d',
+                       '+ted': '+d',
+                       '+ding': '+ing',
+                       '+sing': '+ing',
+                       '+zed': '+d',
+                       '+ging': '+ing',
+                       '+ies': '+s',
+                       '+king': '+ing',
+                       '+ning': '+ing',
+                       '+ged': '+d',
+                       '+bing': '+ing',
+                       '+ses': '+s',
+                       '+ked': '+d',
+                       '+ied': '+d',
+                       '+sed': '+d',
+                       '+t': '+t',
+                       'goent': '',
+                       'bes': '',
+                       'bem': '',
+                       'beere': '',
+                       '': ''}
+    if suffix in phonetic_suffix:
+        suffix = phonetic_suffix[suffix]
+    else:
+        print suffix
     if len(morphemes) == 1:
-        return suffix == 'null'
+        return suffix in ['IRR','','null']
     if len(morphemes) == 2:
         if morphemes[1] == '@d': return suffix == '+d'
+        if morphemes[1] == 'Id': return suffix == '+d'
         if morphemes[1] == 't': return suffix == '+d' or suffix == '+t'
         if morphemes[1] == 'd': return suffix == '+d'
         if morphemes[1] == '@z': return suffix == '+s'
+        if morphemes[1] == 'Iz': return suffix == '+s'
         if morphemes[1] == 's': return suffix == '+s'
         if morphemes[1] == 'z': return suffix == '+s'
         if morphemes[1] == 'IN': return suffix == '+ing'
         if morphemes[1] == 'n': return suffix == '+n'
         if morphemes[1] == '@n': return suffix == '+n'
+        if morphemes[1] == 'In': return suffix == '+n'
         return False
     return False
 
@@ -53,21 +106,20 @@ with open(segmentation_file) as f:
         
         inflection = ' '.join([c for c in ''.join(morphemes) ]).replace('Q','\\ae')
 
-        for v in range(len(verbs)):
-            lexical_item = lexical_items[v] # what word are we looking at
+        for v in range(len(celex_inflections)):
             candidate_explanations = []
-            for i in range(6):
-                if verbs[v][i] == inflection:
-                    inflection_code = ['VB','VBD','VBG','VBN','VBP','VBZ'][i]
-                    lexical_inflection,suffix,transform = lexicon[lexical_item][inflection_code]
-                    candidate_explanations.append((suffix,transform))
-#            if len(candidate_explanations) > 0:
-#                print morphemes,candidate_explanations
-            if any([correct_explanation(morphemes,suffix,transform) 
-                    for suffix,transform in candidate_explanations ]):
+            for i in range(5):
+                if celex_inflections[v][i] == inflection:
+                       candidate_explanations.append(celex_stem[v][i][1])
+#            if len(candidate_explanations) == 0:
+#                print morphemes,inflection
+            if any([correct_explanation(morphemes,suffix) 
+                    for suffix in candidate_explanations ]):
                 correct += 1
                 break
 #            else:
 #                print morphemes,candidate_explanations
 
 print float(correct)/attempts
+#for s in suffixes:
+#    print s
