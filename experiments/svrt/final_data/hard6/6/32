@@ -1,0 +1,16 @@
+Using lexicon
+&\textipa{k @ n t r I b j u t} &\textipa{k @ n t r I b j u t I d} &\textipa{k @ n t r I b j u t s} &\textipa{k @ n t r I b j u t I d} &\textipa{k @ n t r I b j u t I N} \\
+&\textipa{d I s t E m p @ r} &\textipa{d I s t E m p @ d} &\textipa{d I s t E m p @ z} &\textipa{d I s t E m p @ d} &\textipa{d I s t E m p @ r I N} \\
+&\textipa{I n t @ s p 3 s} &\textipa{I n t @ s p 3 s t} &\textipa{I n t @ s p 3 s I z} &\textipa{I n t @ s p 3 s t} &\textipa{I n t @ s p 3 s I N} \\
+&\textipa{b a I n d} &\textipa{b a U n d} &\textipa{b a I n d z} &\textipa{b a U n d} &\textipa{b a I n d I N} \\
+&\textipa{p r @ U b e I t} &\textipa{p r @ U b e I t I d} &\textipa{p r @ U b e I t s} &\textipa{p r @ U b e I t I d} &\textipa{p r @ U b e I t I N} \\
+&\textipa{s k I m} &\textipa{s k I m d} &\textipa{s k I m z} &\textipa{s k I m d} &\textipa{s k I m I N} \\
+Checking model using Z3...
+Proved unsatisfiable in 9.570501 sec
+Total solver time: 9.570501
+Traceback (most recent call last):
+  File "language.py", line 333, in <module>
+    testing_likelihood(programs,training,'TRAIN')
+  File "language.py", line 302, in testing_likelihood
+    assert model != 'FAIL'
+AssertionError
