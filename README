@@ -15,41 +15,48 @@ To run this software on the SVRT problems:
 - Download SVRT to gain access to the images
 - run `python parse.py <n>` where `<n>` is an SVRT problem number
 
+## Dependencies ##
+- Z3
+
 ## Project Structure ##
 
 The project includes the following files:
 
 - README: this file
-- sasquatch.py: the core wrapper around Z3 for squashing via program synthesis
-- experiments/: applications of Sasquatch
+- setup.py: installation information for pip
+- bin/: the executable files associated with this project
   - experiment.sh: a wrapper for running iterative experiments on MIT's athena computers
-  - morphology/: an experiment in discovering programs for English morphology
-    - celex.py
-    - corpus.py
-    - ipa.py
-    - language.py
-    - lexicon.py
-    - loop_language.py
-    - morphology.py
-    - morphology_baseline.py
-    - process_verbs.py
-    - verbs
-  - regress/: an experiment in discovering programs for linear regression
-    - regress.py
-  - svrt/: an experiment in discovering programs for SVRT image classification
-    - classifier.py
-    - dinnerParty.py: an implementation of parallel mapping
-    - find_bad_parses.py
-    - parse.py
-    - parser_utilities.py
-    - vision.py
-    - vision_data.py
-    - vision_notes
-    - analysis/:
-      - accuracies.py
-      - curves.py
-      - figures.py
-    - final_data/:
-    - neural/:
-      - collect_data.py
-      - neural.lua
+- sasquatch/: the project's python files
+  - sasquatch.py: the core wrapper around Z3 for squashing via program synthesis
+  - experiments/: applications of Sasquatch
+    - morphology/: an experiment in discovering programs for English morphology
+      - celex.py
+      - corpus.py
+      - ipa.py
+      - language.py
+      - lexicon.py
+      - loop_language.py
+      - morphology.py
+      - morphology_baseline.py
+      - process_verbs.py
+      - verbs
+    - regress/: an experiment in discovering programs for linear regression
+      - regress.py
+    - svrt/: an experiment in discovering programs for SVRT image classification
+      - classifier.py
+      - dinnerParty.py: an implementation of parallel mapping
+      - find_bad_parses.py
+      - parse.py
+      - parser_utilities.py
+      - vision.py
+      - vision_data.py
+      - vision_notes
+      - analysis/:
+        - accuracies.py
+        - curves.py
+        - figures.py
+      - final_data/:
+        - many data files
+      - neural/:
+        - collect_data.py
+        - neural.lua
