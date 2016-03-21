@@ -1,7 +1,6 @@
 import sys
 import math
 import time
-import os
 from   z3   import *
 
 # global variables
