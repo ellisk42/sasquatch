@@ -432,8 +432,3 @@ def imperative_generator(production, d, initial_production = None):
     constrain(mdl == first_length + rest_length)
 
     return evaluate,mdl,printer
-
-# non-defs
-primitive_rule('REAL', primitive_real)
-primitive_rule('BOOL', primitive_Boolean)
-primitive_rule('ANGLE', primitive_angle)
