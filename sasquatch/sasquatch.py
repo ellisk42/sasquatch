@@ -31,7 +31,7 @@ def logarithm(n):
     return math.log(n)/math.log(2.0)
 
 def distribution_mode(d):
-    """give the most frequent item in some container"""
+    """give the most frequent item in some smoothed container"""
     k = {}
     for x in d:
         k[x] = k.get(x,0) + 1
@@ -81,81 +81,16 @@ def integer():
 
 ## create lists of variables
 def booleans(K):
-    """create K new booleans in a list"""
+    """create a list of K booleans"""
     return [ boolean() for i in range(0,K) ]
 
 def real_numbers(K):
-    """create K new reals in a list"""
+    """create a list of K reals"""
     return [ real() for i in range(0,K) ]
 
 def integer_numbers(K):
-    """create K new integers in a list"""
+    """create a list of K integers"""
     return [ integer() for i in range(0,K) ]
-
-## add constraints
-def constrain(constraint):
-    """add a constraint to the solver"""
-    slv.add(constraint)
-
-def pick_exactly_one(indicators):
-    """add constraints to choose exactly one of several options"""
-    K = len(indicators)
-    constrain(Or(*indicators))
-    for i in range(0,K):
-        for j in range(i+1,K):
-            constrain(Not(And(indicators[j],indicators[i])))
-    return indicators
-
-def permutation_indicators(K):
-    """not sure this is actually a permutation, but will have to look at
-    how it is used
-    """
-    indicators = [ [ boolean() 
-                     for i in range(K) ]
-                   for j in range(K) ]
-    for r in range(K):
-        pick_exactly_one(indicators[r])
-    for c in range(K):
-        pick_exactly_one([indicators[i][c] for i in range(K) ])
-    return indicators
-
-def multiplexer(indicators,choices):
-    """creates a constraint acting as a case analysis pairing indicators and choices"""
-    if isinstance(choices[0], tuple):
-        n = len(choices[0]) # arity of tuple
-        return tuple([ multiplexer(indicators, [x[j] for x in choices ])
-                       for j in range(n) ])
-    assert(len(indicators) == len(choices))
-    if len(indicators) == 1:
-        return choices[0]
-    return If(indicators[0], choices[0],
-              multiplexer(indicators[1:],choices[1:]))
-
-def apply_permutation(p, xs):
-    """construct a list of multiplexer using a list of lists of indicators"""
-    return [ multiplexer(p[j],xs) for j in range(len(xs)) ]
-
-def summation(xs):
-    """constrain a cumulative sum"""
-    accumulator = 0
-    for x in xs:
-        new_accumulator = real()
-        constrain(new_accumulator == accumulator + x)
-        accumulator = new_accumulator
-    return accumulator
-
-def iff(a,b):
-    """add bi-directional implication constraints"""
-    constrain(And(Implies(a,b),Implies(b,a)))
-
-def constrain_angle(dx,dy):
-    """constrain dx,dy to be on the unit circle"""
-    constrain(dx*dx + dy*dy == 1)
-
-def conditional(p,q,r):
-    """wrapper over If that handles tuples correctly"""
-    if not isinstance(q,tuple) and not isinstance(q,list): return If(p,q,r)
-    return tuple([ If(p,a,b) for a,b in zip(list(q),list(r)) ])
 
 ## convert Solver variables to Python values
 def extract_real(m,r):
@@ -169,6 +104,68 @@ def extract_int(m,i):
 def extract_bool(m,b):
     """pulls a string representation of a Z3 variable as a Boolean"""
     return '?' if (m[b] == None) else str(m[b])
+
+## add constraints
+def constrain(constraint):
+    """add a constraint to the solver"""
+    slv.add(constraint)
+
+def multiplexer(indicators,choices):
+    """creates a constraint acting as a case analysis pairing indicators and choices"""
+    if isinstance(choices[0], tuple):
+        n = len(choices[0]) # arity of tuple
+        return tuple([ multiplexer(indicators, [x[j] for x in choices ])
+                       for j in range(n) ])
+    assert(len(indicators) == len(choices))
+    if len(indicators) == 1:
+        return choices[0]
+    return If(indicators[0], choices[0],
+              multiplexer(indicators[1:],choices[1:]))
+
+def summation(xs):
+    """constrain a cumulative sum"""
+    accumulator = 0
+    for x in xs:
+        new_accumulator = real()
+        constrain(new_accumulator == accumulator + x)
+        accumulator = new_accumulator
+    return accumulator
+
+def pick_exactly_one(indicators):
+    """add constraints to choose exactly one of several options"""
+    K = len(indicators)
+    constrain(Or(*indicators))
+    for i in range(0,K):
+        for j in range(i+1,K):
+            constrain(Not(And(indicators[j],indicators[i])))
+    return indicators
+
+def conditional(p,q,r):
+    """wrapper over If that handles tuples and lists correctly (i.e.
+    ensures structural equality in the 'then' and 'else' branches)."""
+    if not isinstance(q,tuple) and not isinstance(q,list): return If(p,q,r)
+    return tuple([ If(p,a,b) for a,b in zip(list(q),list(r)) ])
+
+def iff(a,b):
+    """add bi-directional implication constraints"""
+    constrain(And(Implies(a,b),Implies(b,a)))
+
+def permutation_indicators(K):
+    """make a KxK bool matrix, one bool is true in each row and column"""
+    indicators = [ booleans(K) for j in range(K) ]
+    for r in range(K):
+        pick_exactly_one(indicators[r])
+    for c in range(K):
+        pick_exactly_one([indicators[i][c] for i in range(K) ])
+    return indicators
+
+def apply_permutation(p, xs):
+    """reorder xs according to permutation p"""
+    return [ multiplexer(p[j],xs) for j in range(len(xs)) ]
+
+def constrain_angle(dx,dy):
+    """constrain dx,dy to be on the unit circle"""
+    constrain(dx*dx + dy*dy == 1)
 
 ## learning model
 def get_recent_model():
@@ -293,6 +290,7 @@ def enum_rule(production, options):
     for j in range(len(options)):
         make_index(j)
 
+## construct programs according to the representation language
 def analyze_rule_recursion():
     """updates 'primitive_production' so that
        'primitive_production[prod_name]' indicates whether 'prod_name'
@@ -378,9 +376,10 @@ def generator(d, production):
     indicators = structural(pick_exactly_one(booleans(numberRules)))
     # setup a new variable representing the MDL of the production's children
     childrenMDL = real()
-    # associate our rule choice with ???
+    # associate our rule choice with the chosen program
     constrain(childrenMDL == multiplexer(indicators,
-                                         [ summation(getRecursive(i,1)) for i in range(numberRules)]))
+                                         [ summation(getRecursive(i,1))
+                                           for i in range(numberRules)]))
 
     def printer(m):
         """print 'production' under model 'm'"""
@@ -393,13 +392,13 @@ def generator(d, production):
         return "#"+production
 
     def evaluate(i):
-        # evaluate each possible choice, and return them all with the restriction that only one can actually occur
+        """evaluate each possible choice, and return them all with the
+        restriction that only one can actually occur"""
         outputs = []
         for r in range(numberRules):
             children_outputs = [ c(i) for c in getRecursive(r,0) ]
             runner = rules[r][2]
             outputs.append(apply(runner, [i]+children_outputs))
-        # multiplex the outputs so we get the right output based on the chosen sub-production
         return multiplexer(indicators, outputs)
 
     # the complete MDL is the MDL of the children + the entropy of the rule choice
@@ -409,26 +408,25 @@ def generator(d, production):
 
 def imperative_generator(production, d, initial_production = None):
     """provide a tuple that evaluates, scores, and prints a production"""
-    if d == 0:    # can't do any more work
-        # FIXME: should we declare mdl as a variable and constrain it to 0?
+    if d == 0: # can't do any more work
         return (lambda state,i: []),0,(lambda m: "")
 
-    # not clear on what's happening here. We might evaluate one step of the production
+    # Generate programs of depth 1 resolving to p
     p = initial_production if initial_production else production
-    first_evaluate, first_length, first_print = generator(1,p)
+    firstEvaluator, firstMDL, firstPrinter = generator(1,p)
 
-    # then we evaluate d-1 steps of that same production, without modification?
-    rest_evaluate, rest_length, rest_print = imperative_generator(production, d-1)
+    # generate programs of depth d-1 resolving to production
+    restEvaluator, restMDL, restPrinter = imperative_generator(production, d-1)
 
-    def evaluate(state,i):
-        first_output, first_state = first_evaluate((state,i))
-        rest_output = rest_evaluate(first_state,i)
+    def evaluator(state,i):
+        first_output, first_state = firstEvaluator((state,i))
+        rest_output = restEvaluator(first_state,i)
         return [first_output]+rest_output
 
     def printer(m):
-        return first_print(m) + "\n" + rest_print(m)
+        return firstPrinter(m) + "\n" + restPrinter(m)
 
     mdl = real()
-    constrain(mdl == first_length + rest_length)
+    constrain(mdl == firstMDL + restMDL)
 
-    return evaluate,mdl,printer
+    return evaluator,mdl,printer
