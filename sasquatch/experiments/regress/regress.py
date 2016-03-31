@@ -1,7 +1,6 @@
-from solverUtilities import *
 import math
 import sys
-
+from   sasquatch import *
 
 S = 4 # number of samples
 N = 5 # number of functions

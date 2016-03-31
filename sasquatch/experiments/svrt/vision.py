@@ -1,9 +1,8 @@
-from solverUtilities import *
 import math
 import sys
 import time
 import re
-
+from   sasquatch import *
 
 MDL_SHAPE = 1000
 MDL_REAL = 10

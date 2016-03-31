@@ -1,11 +1,10 @@
-from solverUtilities import *
-from z3 import *
 import math
 import random
 import sys
-
-from corpus import *
-from lexicon import *
+from   z3        import *
+from   sasquatch import *
+from   corpus    import *
+from   lexicon   import *
 
 # exception probability
 epsilon = 0.1
