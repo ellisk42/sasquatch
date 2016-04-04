@@ -1,6 +1,9 @@
 import math
-from   random              import randint
-from   sasquatch.sasquatch import *
+from   random                import randint
+from   sasquatch.constraints import *
+from   sasquatch.values      import valueMaker,extract_real
+from   sasquatch.language    import Language
+from   sasquatch.sasquatch   import Sasquatch
 
 def run_regression(family,testFn,nCurves=5,nSamples=4,maxDepth=3,maxParams=2):
     """ unsupervised synthesis over a family of regression problems:
@@ -15,23 +18,25 @@ def run_regression(family,testFn,nCurves=5,nSamples=4,maxDepth=3,maxParams=2):
     maxParams: integer, the maximum number of parameters, theta_i, to consider
     """
     costOfReal = 10.0 # hack! magic numbers
+    values = valueMaker()
     Xs = range(nSamples)
     solutions = []
-    for nParameters in range(1,maxParams+1):
-        clear_solver()
-        add_grammar(nParameters)
-        e,modelMDL,pr = generator(maxDepth,'EXPRESSION')
+    for nParameters in range(maxParams+1):
+        print "using {0} parameters".format(nParameters)
+        s = Sasquatch(values,'test',verbose=True)
+        ev,modelMDL,pr = s.make_search_space(build_grammar(values,nParameters),
+                                             'EXPRESSION',maxDepth)
         dataMDL = nCurves * nParameters * costOfReal
-        totalMDL = summation([modelMDL,dataMDL])
-        inputs,outputs = make_training_data(family,nParameters,nCurves,Xs)
-        push_solver() # set a new frame
-        constrain_accuracy(inputs,outputs,e)
-        constrain_efficiency(totalMDL,solutions)
-        solutions = solutions+search_for_solution(pr,e,totalMDL,nParameters)
-    (solver,bestNParameters,evaluator) = print_best_solution(solutions)
-    test_model(solver,bestNParameters,Xs,evaluator,testFn)
+        inputs,outputs = make_training_data(values,family,nParameters,nCurves,Xs)
+        s.accuracy_constraints = accuracy(inputs,outputs,ev)
+        totalMDL,s.efficiency_constraints = efficiency(values,
+                                                       [dataMDL,modelMDL],
+                                                       solutions)
+        solutions = solutions+search_for_solution(s,pr,ev,totalMDL,nParameters)
+    (s,bestNParameters,evaluator) = print_best_solution(solutions)
+    test_model(s,values,bestNParameters,Xs,evaluator,testFn)
 
-def add_grammar(nParameters):
+def build_grammar(values,nParameters):
     """ add the following grammar to the solver:
         EXPR <- REAL
               | x
@@ -39,27 +44,34 @@ def add_grammar(nParameters):
               | (+ EXPR EXPR)
               | (* EXPR EXPR)
     """
-    rule('EXPRESSION', ['REAL'],
-         lambda m, r: r,
-         lambda i, r: r)
-    rule('EXPRESSION',[],
-         lambda m: 'x',
-         lambda i: i[0])
-    indexed_rule('EXPRESSION','Theta',
-                 nParameters,
-                 lambda i: i[1:])
-    rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
-         lambda m, p, q: "(+ %s %s)" % (p,q),
-         lambda i, p, q: p+q)
-    rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
-         lambda m, p, q: "(* %s %s)" % (p,q),
-         lambda i, p, q: p*q)
+    l = Language(values)
+    l.add_reals()
+    l.rule('EXPRESSION', ['REAL'],
+           lambda m, r: r,
+           lambda i, r: r,
+           [])
+    l.rule('EXPRESSION',[],
+           lambda m: 'x',
+           lambda i: i[0],
+           [])
+    l.indexed_rule('EXPRESSION','Theta',
+                   nParameters,
+                   lambda i: i[1:])
+    l.rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
+           lambda m, p, q: "(+ %s %s)" % (p,q),
+           lambda i, p, q: p+q,
+           [])
+    l.rule('EXPRESSION',['EXPRESSION','EXPRESSION'],
+           lambda m, p, q: "(* %s %s)" % (p,q),
+           lambda i, p, q: p*q,
+           [])
+    return l
 
-def make_training_data(family,nParams,nCurves,Xs):
+def make_training_data(values,family,nParams,nCurves,Xs):
     """ create the training input/output pairs """
-    L = [ [ real() for i in range(nParams) ] for j in range(nCurves) ]
+    L = [ [ values('r') for i in range(nParams) ] for j in range(nCurves) ]
     training_inputs = []
-    # training_inputs is a list: [[X_1 Real_1 ... Real_D], ... [X_X ...]]
+    # training_inputs is a list: [[X_1 Theta[0] ... Theta[nParams-1]], ...]
     xs = [[x]+L[n] for n in range(nCurves) for x in Xs]
 
     f = lambda n1, n2, x: eval(family)
@@ -67,22 +79,23 @@ def make_training_data(family,nParams,nCurves,Xs):
     ys = [f(thetas[n][0],thetas[n][1],x) for n in range(nCurves) for x in Xs]
     return xs,ys
         
-def constrain_efficiency(totalMDL,solutions):
+def efficiency(values,mdls,solutions):
     """ force the next solution to be as good or better than the current best """
-    if len(solutions) > 0:
-        bestLength = min(solutions)[0]
-        constrain(totalMDL < bestLength)
+    totalMDL,cs = summation(values,mdls)
+    constraints = cs + ([totalMDL < min(solutions)[0]] if solutions else [])
+    return  totalMDL,constraints
     
-def constrain_accuracy(xs,ys,e,epsilon=0.1):
+def accuracy(xs,ys,e,epsilon=0.1):
     """ force the next solution to be accurate """
+    constraints = []
     for x,y in zip(xs, ys):
         yp = e(x)
-        constrain(yp >= y - epsilon)
-        constrain(yp <= y + epsilon)
+        constraints += [yp >= y - epsilon, yp <= y + epsilon]
+    return constraints
 
-def search_for_solution(pr,e,totalMDL,D):
+def search_for_solution(s,pr,e,totalMDL,D):
     """ try to find a solution and report the result """
-    p,totalMDL = compressionLoop(pr,totalMDL)
+    p,totalMDL = s.compress(pr,totalMDL)
     if totalMDL == None:
         print "="*40
         print "No solution for D = %i" % D
@@ -92,7 +105,7 @@ def search_for_solution(pr,e,totalMDL,D):
         print "="*40
         print "Got solution for D = %i" % D
         print "="*40
-        return [(totalMDL,p,e,pr,get_solver(),D)]
+        return [(totalMDL,p,e,pr,s,D)]
     
 def print_best_solution(solutions):
     """ report the best discovered solution over all degrees of freedom """
@@ -103,27 +116,24 @@ def print_best_solution(solutions):
     print "="*40
     print p
     print "="*40
-    print
     return (solver,D,e)
 
-def test_model(solver,nParams,Xs,predict,testFn):
+def test_model(s,values,nParams,Xs,predict,testFn):
     """ test our representation on a held out test function """
-    set_solver(solver)
-    thetas = [ real() for i in range(nParams)]
+    thetas = [ values('r') for i in range(nParams)]
     for x in Xs:
         y = eval(testFn)
         yp = predict([x] + thetas)
         epsilon = 0.1
-        constrain(yp > y - epsilon)
-        constrain(yp < y + epsilon)
+        s.constrain([yp >= y - epsilon, yp <= y + epsilon])
 
-    if str(solver.check()) == 'sat': # found a satisfying model
+    if str(s.slv.check()) == 'sat': # found a satisfying model
         print
         print "="*40
         print 'Found representation for test data:'
         print "="*40
         for p in range(nParams):
-            pVal = extract_real(solver.model(), thetas[p])
+            pVal = extract_real(s.slv.model(), thetas[p])
             print "Theta[{0:d}] = {1:.3f}".format(p, pVal)
         print "="*40
     else:
