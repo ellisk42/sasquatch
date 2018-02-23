@@ -253,7 +253,7 @@ def train_on_matrix(observations):
         inflection_length = len(inflected.split(' '))
         penalty = logarithm(44)*inflection_length - logarithm(epsilon)
         regular = boolean()
-        constrain(regular)
+        #constrain(regular)
         constrain(Implies(regular,And(cs)))
         noise_penalties.append(If(regular,
                                   0.0,
@@ -325,7 +325,7 @@ if __name__ == '__main__':
               'lexicon': sample_corpus,
               'coupled': coupled_sparsity,
               'minimal': lambda n,t: minimal_pairs[0:n]}
-    random.seed(42)
+#    random.seed(42)
     training,test = split_lexicon()
     print 'Using %s' % sys.argv[2]
     model = models[sys.argv[2]]
